@@ -18,6 +18,8 @@ public class Amongifier {
      */
     private static HashSet<Point> faceSet = new HashSet<>();
     private static HashSet<Point> greenSet = new HashSet<>();
+    private static HashSet<Point> backpackSet = new HashSet<>();
+    private static HashSet<Point> blueSet = new HashSet<>();
     private static HashSet<Point> extrapolatedPixels = new HashSet<>();
     private static Queue<Point> definitePixels = new ArrayDeque<>();
     private static BufferedImage pastedTemplate;
@@ -75,6 +77,14 @@ public class Amongifier {
             }
         }
 
+        for (int i = 0; i < template.getWidth(); i++) {
+            for (int j = 0; j < template.getHeight(); j++) {
+                if (getColorAt(template, i, j, false).getBlue() == 255) {
+                    blueSet.add(new Point(i, j));
+                }
+            }
+        }
+
         num = 0;
         int faceX = 0, faceY = 0, num2 = 0;
         for (int i = midPixel.x - faceImage.getWidth() / 2; i < midPixel.x + faceImage.getWidth() / 2; i++) {
@@ -119,7 +129,7 @@ public class Amongifier {
         System.out.println("Pasting Complete. Beginning Extrapolation...");
 
         extrapolate();
-        
+
         for (int i = 0; i < 5; i++) {
             addNoise(.01);
             smooth(0);
@@ -203,12 +213,88 @@ public class Amongifier {
 
                 if (badLoops > 10) {
                     System.out.println("Stuck with " + greenSet.size() + " pixels remaining.");
-                } else {
-                    // System.out.println("Bad :(");
                 }
-
             }
         }
+
+        // Fill in blue space
+        for (int j = 0; j < pastedTemplate.getHeight(); j++) {
+            int blueIndex = -1;
+            for (int i = 0; i < pastedTemplate.getWidth(); i++) {
+                Color faceColor = getColorAt(pastedTemplate, i, j, false);
+
+                if (blueSet.contains(new Point(i, j))) {
+                    blueIndex = i;
+                }
+            }
+            if (blueIndex >= 0) {
+                // Find first face pixel, copy color over
+                Color copiedColor = new Color(0, 0, 0);
+                for (int i = blueIndex; i < pastedTemplate.getWidth(); i++) {
+                    if (faceSet.contains(new Point(i, j))) {
+                        copiedColor = getColorAt(pastedTemplate, i, j, false);
+                        break;
+                    }
+                }
+                g2d.setColor(copiedColor);
+                backpackSet.add(new Point(blueIndex, j));
+                blueSet.remove(new Point(blueIndex, j));
+                g2d.drawRect(blueIndex, j, 0, 0);
+            }
+        }
+
+        definitePixels.clear();
+        badLoops = 0;
+
+        lastPrint = blueSet.size();
+
+        System.out.println("Starting backpack extrapolation...");
+
+        // Extrapolate blue set
+        while (blueSet.size() > 0) {
+            Point nextPoint = definitePixels.poll();
+
+            for (Point p : blueSet) {
+                if (nextPoint != null)
+                    break;
+
+                if (numFilledPixels(p) >= (badLoops >= 2 ? 1 : minPointCount())) {
+                    nextPoint = p;
+                    if (threeEighths)
+                        threeEighths = false;
+                }
+            }
+
+            if (nextPoint != null) {
+                badLoops = 0;
+
+                if (lastPrint - blueSet.size() >= 25000) {
+                    System.out.println(blueSet.size() + " pixels remaining.");
+                    lastPrint = blueSet.size();
+                }
+                g2d.setColor(averageColor(nextPoint));
+                g2d.drawRect(nextPoint.x, nextPoint.y, 0, 0);
+
+                backpackSet.add(nextPoint);
+                blueSet.remove(nextPoint);
+                extrapolatedPixels.add(nextPoint);
+
+                ArrayList<Point> attemptPoint = getAllAdjacentPoints(nextPoint);
+                definitePixels.addAll(attemptPoint);
+            }
+
+            else {
+                badLoops++;
+
+                // If it reaches this point, that's fine! Just have to search for 3/8 next time.
+                threeEighths = true;
+
+                if (badLoops > 10) {
+                    System.out.println("Stuck with " + greenSet.size() + " pixels remaining.");
+                }
+            }
+        }
+
         g2d.dispose();
     }
 
@@ -225,8 +311,12 @@ public class Amongifier {
         Graphics2D g2d = pastedTemplate.createGraphics();
         HashMap<Point, Color> colorMap = new HashMap<>();
 
+        HashSet<Point> smoothSet = new HashSet<>();
+        smoothSet.addAll(originalGreenSet);
+        smoothSet.addAll(backpackSet);
+
         System.out.println("Pixels to smooth: " + originalGreenSet.size());
-        for (Point p : originalGreenSet) {
+        for (Point p : smoothSet) {
             Color avg = averageColor(p);
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
 
@@ -258,7 +348,7 @@ public class Amongifier {
         for (int y = 0; y < pastedTemplate.getHeight(); y++) {
             for (int x = 0; x < pastedTemplate.getWidth(); x++) {
                 noiseMatrix[x][y] = ((noise.eval(x / (pastedTemplate.getHeight() / 400),
-                        y / (pastedTemplate.getHeight() / 400), 0.0))+1)/2;
+                        y / (pastedTemplate.getHeight() / 400), 0.0)) + 1) / 2;
             }
         }
 
@@ -273,10 +363,15 @@ public class Amongifier {
             blue += c.getBlue();
             colors++;
         }
-        //Color averageColor = new Color((int) (red / colors), (int) (green / colors), (int) (blue / colors));
-        Color averageColor = new Color(255,255,255);
+        // Color averageColor = new Color((int) (red / colors), (int) (green / colors),
+        // (int) (blue / colors));
+        Color averageColor = new Color(255, 255, 255);
 
-        for (Point p : originalGreenSet) {
+        HashSet<Point> noiseSet = new HashSet<Point>();
+        noiseSet.addAll(originalGreenSet);
+        noiseSet.addAll(backpackSet);
+
+        for (Point p : noiseSet) {
 
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
             int r = Helper.clamp((int) (Math.round(oldColor.getRed() * (1 - degree))
@@ -285,8 +380,8 @@ public class Amongifier {
                     + Math.round(averageColor.getGreen() * degree * noiseMatrix[p.x][p.y])), 0, 255);
             int b = Helper.clamp((int) (Math.round(oldColor.getBlue() * (1 - degree))
                     + Math.round(averageColor.getBlue() * degree * noiseMatrix[p.x][p.y])), 0, 255);
-            
-            Color weightedColor = new Color(r,g,b);
+
+            Color weightedColor = new Color(r, g, b);
             g2d.setColor(weightedColor);
             g2d.drawRect(p.x, p.y, 0, 0);
         }
@@ -299,7 +394,7 @@ public class Amongifier {
 
         int num = 0;
         for (Point point : pointsOfInterest) {
-            if (faceSet.contains(point))
+            if (faceSet.contains(point) || backpackSet.contains(point))
                 num++;
         }
         return num;
@@ -315,7 +410,7 @@ public class Amongifier {
         ArrayList<Color> colors = new ArrayList<Color>();
         Point[] pointsOfInterest = getPointsOfInterest(p);
         for (Point point : pointsOfInterest) {
-            if (faceSet.contains(point)) {
+            if (faceSet.contains(point) || backpackSet.contains(point)) {
                 colors.add(getColorAt(pastedTemplate, point.x, point.y, false));
             }
         }
@@ -346,7 +441,7 @@ public class Amongifier {
     private static Point attemptAdjacentPoints(Point p) {
         Point[] pointsOfInterest = getPointsOfInterest(p);
         for (Point point : pointsOfInterest) {
-            if (greenSet.contains(point) && numFilledPixels(point) >= minPointCount()) {
+            if ((greenSet.contains(point) || blueSet.contains(point)) && numFilledPixels(point) >= minPointCount()) {
                 return point;
             }
         }
@@ -367,7 +462,7 @@ public class Amongifier {
 
         ArrayList<Point> goodPoints = new ArrayList<>();
         for (Point point : pointsOfInterest) {
-            if (greenSet.contains(point) && numFilledPixels(point) >= minPointCount()
+            if ((greenSet.contains(point) || blueSet.contains(point)) && numFilledPixels(point) >= minPointCount()
                     && !definitePixels.contains(point)) {
                 goodPoints.add(point);
             }
