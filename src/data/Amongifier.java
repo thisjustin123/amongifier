@@ -30,13 +30,87 @@ public class Amongifier {
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
+    private static final String OUTPUTFILE_STRING = "anthony2_amongified.png";
+    private static final String INPUTFILE_STRING = "anthony2_transparent.png";
+
+    private static final boolean FORCE_ASPECT_RATIO = false;
+
     public static void main(String[] args) {
         try {
-            BufferedImage image = ImageIO.read(new File("Anthony_FinalTestCase.png"));
+            BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
+            image = format(image);
             amongify(image);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static BufferedImage format(BufferedImage faceImage) {
+        int desiredWidth = 570, desiredHeight = 766;
+
+        double multFactor = 1.0;
+        int newWidth = desiredWidth, newHeight = desiredHeight;
+        // Image is too small in both dimensions
+        if (!FORCE_ASPECT_RATIO) {
+
+            if (faceImage.getWidth() < desiredWidth && faceImage.getHeight() < desiredHeight) {
+                multFactor = Math.min(((double) (desiredWidth)) / faceImage.getWidth(),
+                        ((double) (desiredHeight)) / faceImage.getHeight());
+            }
+            // Image is too tall
+            else if (faceImage.getWidth() < desiredWidth) {
+                multFactor = ((double) desiredHeight) / faceImage.getHeight();
+            }
+            // Image is too wide
+            else if (faceImage.getHeight() < desiredHeight) {
+                multFactor = ((double) desiredWidth) / faceImage.getWidth();
+            }
+            // Image is too big in both dimensions
+            else {
+                multFactor = Math.min(((double) (desiredWidth)) / faceImage.getWidth(),
+                        ((double) (desiredHeight)) / faceImage.getHeight());
+            }
+
+            multFactor = Math.max(((double) (desiredWidth)) / faceImage.getWidth(),
+                    ((double) (desiredHeight)) / faceImage.getHeight());
+
+            newWidth = (int) Math.round(faceImage.getWidth() * multFactor);
+            newHeight = (int) Math.round(faceImage.getHeight() * multFactor);
+        }
+
+        BufferedImage newImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage newImageFinal = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = newImage.createGraphics();
+        Graphics2D gFinal = newImageFinal.createGraphics();
+        gFinal.setBackground(new Color(0, 0, 0, 0));
+
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+        g.drawImage(faceImage, 0, 0, newWidth, newHeight, 0, 0, faceImage.getWidth(),
+                faceImage.getHeight(), null);
+
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC));
+        // g.setColor(new Color(0, 0, 0, 255));
+        for (int i = 0; i < newImage.getWidth(); i++) {
+            for (int j = 0; j < newImage.getHeight(); j++) {
+                Color faceColor = getColorAt(newImage, i, j, true);
+                gFinal.setColor(faceColor);
+
+                if (faceColor.getAlpha() == 255) {
+                    gFinal.drawRect(i, j, 0, 0);
+                }
+            }
+        }
+
+        g.dispose();
+        try {
+            File file = new File("ChrisfaceScaled.png");
+            ImageIO.write(newImageFinal, "png", file);
+        } catch (IOException e) {
+        }
+
+        return newImageFinal;
     }
 
     /**
@@ -58,6 +132,7 @@ public class Amongifier {
 
         System.out.println("Image width: " + faceImage.getWidth() + ", Image height: " + faceImage.getHeight());
         int num = 0;
+        int num3 = 0;
         for (int i = 0; i < faceImage.getWidth(); i++) {
             for (int j = 0; j < faceImage.getHeight(); j++) {
                 Color faceColor = getColorAt(faceImage, i, j, true);
@@ -65,9 +140,13 @@ public class Amongifier {
                 if (faceColor.getAlpha() != 0) {
                     num++;
                 }
+                if (faceColor.getAlpha() == 255) {
+                    num3++;
+                }
             }
         }
-        System.out.println("Num non-transparent pixels: " + num);
+        System.out.println("Num non-transparent pixels: " + num + ", " + num3);
+        assert num == num3;
 
         for (int i = 0; i < template.getWidth(); i++) {
             for (int j = 0; j < template.getHeight(); j++) {
@@ -90,7 +169,8 @@ public class Amongifier {
         for (int i = midPixel.x - faceImage.getWidth() / 2; i < midPixel.x + faceImage.getWidth() / 2; i++) {
             faceY = 0;
             for (int j = midPixel.y - faceImage.getHeight() / 2; j < midPixel.y + faceImage.getHeight() / 2; j++) {
-                if (getColorAt(template, i, j, false).getGreen() == 255) {
+                if (i < template.getWidth() && i >= 0 && j < template.getHeight() && j >= 0
+                        && getColorAt(template, i, j, false).getGreen() == 255) {
                     Color faceColor = getColorAt(faceImage, faceX, faceY, true);
 
                     g2d.setColor(faceColor);
@@ -137,7 +217,7 @@ public class Amongifier {
 
         g2d.dispose();
 
-        File file = new File("testAmongify.png");
+        File file = new File(OUTPUTFILE_STRING);
         ImageIO.write(template, "png", file);
 
         return template;

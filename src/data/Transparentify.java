@@ -7,7 +7,7 @@ import java.util.*;
 public class Transparentify {
     public static void main(String[] args) {
         try {
-            BufferedImage image = ImageIO.read(new File("Chris_TestCase.png"));
+            BufferedImage image = ImageIO.read(new File("anthony2.png"));
             boolean[][] pixels = new boolean[image.getWidth()][image.getHeight()];
 
             BufferedImage bufferedImage = new BufferedImage(image.getWidth(), image.getHeight(),
@@ -100,7 +100,7 @@ public class Transparentify {
             g2d.dispose();
             g2d2.dispose();
 
-            File file = new File("myimage.png");
+            File file = new File("anthony2_transparent.png");
             ImageIO.write(bufferedImage2, "png", file);
 
         } catch (IOException e) {
