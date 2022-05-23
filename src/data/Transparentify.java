@@ -5,9 +5,13 @@ import javax.imageio.ImageIO;
 import java.util.*;
 
 public class Transparentify {
+
+    private static final String INPUTFILE_STRING = "declan_test1.png";
+    private static final String OUTPUTFILE_STRING = "declan1_transparent.png";
+
     public static void main(String[] args) {
         try {
-            BufferedImage image = ImageIO.read(new File("anthony2.png"));
+            BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
             boolean[][] pixels = new boolean[image.getWidth()][image.getHeight()];
 
             BufferedImage bufferedImage = new BufferedImage(image.getWidth(), image.getHeight(),
@@ -100,7 +104,7 @@ public class Transparentify {
             g2d.dispose();
             g2d2.dispose();
 
-            File file = new File("anthony2_transparent.png");
+            File file = new File(OUTPUTFILE_STRING);
             ImageIO.write(bufferedImage2, "png", file);
 
         } catch (IOException e) {

@@ -25,13 +25,16 @@ public class Amongifier {
     private static BufferedImage pastedTemplate;
     private static BufferedImage face;
     private static boolean threeEighths = false;
+
     private static final boolean forceThreeEights = true;
+    private static final int pointsRectWidth = 12;
+    private static final int pointsRectHeight = 12;
 
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String OUTPUTFILE_STRING = "anthony2_amongified.png";
-    private static final String INPUTFILE_STRING = "anthony2_transparent.png";
+    private static final String OUTPUTFILE_STRING = "declan1_amongified.png";
+    private static final String INPUTFILE_STRING = "declan1_transparent.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -253,7 +256,7 @@ public class Amongifier {
                 if (nextPoint != null)
                     break;
 
-                if (numFilledPixels(p) >= (badLoops >= 2 ? 1 : minPointCount())) {
+                if (numFilledPixels(p) >= 1 && badLoops >= 2 || threeEightsOrMore(p)) {
                     nextPoint = p;
                     if (threeEighths)
                         threeEighths = false;
@@ -338,7 +341,7 @@ public class Amongifier {
                 if (nextPoint != null)
                     break;
 
-                if (numFilledPixels(p) >= (badLoops >= 2 ? 1 : minPointCount())) {
+                if (numFilledPixels(p) >= 1 && badLoops >= 2 || threeEightsOrMore(p)) {
                     nextPoint = p;
                     if (threeEighths)
                         threeEighths = false;
@@ -469,8 +472,20 @@ public class Amongifier {
         g2d.dispose();
     }
 
+    /**
+     * Returns the number of adjacent filled pixels in the 4 immediately adjacent
+     * pixels.
+     * 
+     * @param p
+     * @return
+     */
     private static int numFilledPixels(Point p) {
-        Point[] pointsOfInterest = getPointsOfInterest(p);
+        Point[] pointsOfInterest = {
+                new Point(p.x - 1, p.y),
+                new Point(p.x + 1, p.y),
+                new Point(p.x, p.y - 1),
+                new Point(p.x, p.y + 1)
+        };
 
         int num = 0;
         for (Point point : pointsOfInterest) {
@@ -510,25 +525,6 @@ public class Amongifier {
     }
 
     /**
-     * Attempts to find a new working point around the input p from the tiles
-     * immediately north, east, south, and west (or more if threeEighths mode is
-     * active).
-     * 
-     * @param p The point whose adjacent points to check.
-     * @return A point object corresponding to a point found, null if no point is
-     *         found.
-     */
-    private static Point attemptAdjacentPoints(Point p) {
-        Point[] pointsOfInterest = getPointsOfInterest(p);
-        for (Point point : pointsOfInterest) {
-            if ((greenSet.contains(point) || blueSet.contains(point)) && numFilledPixels(point) >= minPointCount()) {
-                return point;
-            }
-        }
-        return null;
-    }
-
-    /**
      * Attempts to find new working points around the input p from the tiles
      * immediately north, east, south, and west.
      * (Order: West -> East -> South -> North)
@@ -538,11 +534,20 @@ public class Amongifier {
      *         found.
      */
     private static ArrayList<Point> getAllAdjacentPoints(Point p) {
-        Point[] pointsOfInterest = getPointsOfInterest(p);
+        Point[] pointsOfInterest = {
+            new Point(p.x - 1, p.y - 1),
+            new Point(p.x + 1, p.y - 1),
+            new Point(p.x - 1, p.y + 1),
+            new Point(p.x + 1, p.y + 1),
+            new Point(p.x - 1, p.y),
+            new Point(p.x + 1, p.y),
+            new Point(p.x, p.y - 1),
+            new Point(p.x, p.y + 1)
+        };
 
         ArrayList<Point> goodPoints = new ArrayList<>();
         for (Point point : pointsOfInterest) {
-            if ((greenSet.contains(point) || blueSet.contains(point)) && numFilledPixels(point) >= minPointCount()
+            if ((greenSet.contains(point) || blueSet.contains(point)) && threeEightsOrMore(p)
                     && !definitePixels.contains(point)) {
                 goodPoints.add(point);
             }
@@ -567,11 +572,32 @@ public class Amongifier {
                 new Point(p.x, p.y - 1),
                 new Point(p.x, p.y + 1)
         };
+        Point[] evenMore = Helper.pointsRectangle(p, pointsRectWidth, pointsRectHeight);
 
-        return forceThreeEights || threeEighths ? more : normal;
+        return evenMore;//forceThreeEights || threeEighths ? more : normal;
     }
 
     private static int minPointCount() {
         return forceThreeEights || threeEighths ? 3 : 2;
+    }
+
+    private static boolean threeEightsOrMore(Point p) {
+        Point[] pointsOfInterest = {
+                new Point(p.x - 1, p.y - 1),
+                new Point(p.x + 1, p.y - 1),
+                new Point(p.x - 1, p.y + 1),
+                new Point(p.x + 1, p.y + 1),
+                new Point(p.x - 1, p.y),
+                new Point(p.x + 1, p.y),
+                new Point(p.x, p.y - 1),
+                new Point(p.x, p.y + 1)
+        };
+
+        int num = 0;
+        for (Point point : pointsOfInterest) {
+            if (faceSet.contains(point) || backpackSet.contains(point))
+                num++;
+        }
+        return num >= 3;
     }
 }
