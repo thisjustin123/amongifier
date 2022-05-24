@@ -49,11 +49,12 @@ public class Transparentify {
                 int red = (clr & 0x00ff0000) >> 16;
                 int green = (clr & 0x0000ff00) >> 8;
                 int blue = clr & 0x000000ff;
+                Color c = new Color(clr, true);
                 double whiteness = ((red) / 255.0 + (green) / 255.0 + (blue) / 255.0) / 3.0;
                 g2d.setColor(new Color(red, green, blue));
                 g2d.drawRect(i, j, 1, 1);
 
-                if (whiteness >= .9) {
+                if (whiteness >= .9 || c.getAlpha() == 0) {
                     pixels[i][j] = true;
                 }
             }

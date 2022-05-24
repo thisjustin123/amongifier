@@ -38,8 +38,8 @@ public class Amongifier {
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "Anthony_TestCase.png";
-    private static final String OUTPUTFILE_STRING = "am_transparentTest.png";
+    private static final String INPUTFILE_STRING = "anthony2_transparent.png";
+    private static final String OUTPUTFILE_STRING = "worldChunger.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
