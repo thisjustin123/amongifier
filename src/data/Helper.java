@@ -6,6 +6,10 @@ public class Helper {
         return (num <= max && num >= min) ? num : ((num <= max) ? min : max);
     }
 
+    public static double clamp(double num, double min, double max) {
+        return (num <= max && num >= min) ? num : ((num <= max) ? min : max);
+    }
+
     /**
      * Returns an array of points corresponding those contained within the
      * rectangle centered at the given point.

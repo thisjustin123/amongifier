@@ -1,5 +1,9 @@
 import java.io.*;
-import java.awt.*;
+import java.awt.Point;
+import java.awt.Color;
+import java.awt.RenderingHints;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
@@ -27,14 +31,17 @@ public class Amongifier {
     private static boolean threeEighths = false;
 
     private static final boolean forceThreeEights = true;
+
+    // Higher is better, but gets much more costly.
     private static final int pointsRectWidth = 12;
     private static final int pointsRectHeight = 12;
 
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String OUTPUTFILE_STRING = "declan1_amongified.png";
-    private static final String INPUTFILE_STRING = "declan1_transparent.png";
+    private static final String INPUTFILE_STRING = "Chris_FinalTestCase.png";
+    private static final String OUTPUTFILE_STRING = "cg_revisited.png";
+    
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -107,11 +114,11 @@ public class Amongifier {
         }
 
         g.dispose();
-        try {
+        /*try {
             File file = new File("ChrisfaceScaled.png");
             ImageIO.write(newImageFinal, "png", file);
         } catch (IOException e) {
-        }
+        }*/
 
         return newImageFinal;
     }
@@ -213,9 +220,11 @@ public class Amongifier {
 
         extrapolate();
 
-        for (int i = 0; i < 5; i++) {
-            addNoise(.01);
+        for (int i = 0; i < 1; i++) {
+            addNoise(.02);
             smooth(0);
+            blendBorder(15);
+            addNoise(.02);
         }
 
         g2d.dispose();
@@ -249,6 +258,8 @@ public class Amongifier {
         Graphics2D g2d = pastedTemplate.createGraphics();
         int lastPrint = greenSet.size();
         int badLoops = 0;
+
+        //Extrapolate green set
         while (greenSet.size() > 0) {
             Point nextPoint = definitePixels.poll();
 
@@ -398,7 +409,30 @@ public class Amongifier {
         smoothSet.addAll(originalGreenSet);
         smoothSet.addAll(backpackSet);
 
-        System.out.println("Pixels to smooth: " + originalGreenSet.size());
+        // Add face boundary pixels to smooth set. A face boundary pixel is any pixel
+        // that is within [some amount] of pixels from a pixel that is immediately
+        // adjacent to a green pixel, including those pixels themselves.
+        for (Point p : originalGreenSet) {
+            Point[] pointsOfInterest = {
+                    new Point(p.x - 1, p.y),
+                    new Point(p.x + 1, p.y),
+                    new Point(p.x, p.y - 1),
+                    new Point(p.x, p.y + 1)
+            };
+
+            for (Point potentialPoint : pointsOfInterest) {
+                if (originalFaceSet.contains(potentialPoint)) {
+                    // Add corresponding points to smoothSet.
+                    ArrayList<Point> pointsToAdd = new ArrayList<>();
+                    Collections.addAll(pointsToAdd, Helper.pointsRectangle(potentialPoint, 8, 8));
+                    pointsToAdd.removeIf((aPoint) -> !faceSet.contains(aPoint));
+                    smoothSet.addAll(pointsToAdd);
+                    smoothSet.add(potentialPoint);
+                }
+            }
+        }
+
+        System.out.println("Pixels to smooth: " + smoothSet.size());
         for (Point p : smoothSet) {
             Color avg = averageColor(p);
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
@@ -419,6 +453,85 @@ public class Amongifier {
             g2d.drawRect(p.x, p.y, 0, 0);
         }
         g2d.dispose();
+    }
+
+    /**
+     * Attempts to slightly smooth out the (previously) green area with
+     * mass-weighted averages. Takes in a set of GOOD points, each that has its own
+     * conservation.
+     * 
+     * @param conservation A number from 0 to 1 dictating by how much the
+     *                     mass-weighted average should be weighted. 1 means no
+     *                     change, 0 means very changed.
+     */
+    private static void smooth(Map<Point, Double> smoothMap) {
+        System.out.println("Smoothing custom...");
+        Graphics2D g2d = pastedTemplate.createGraphics();
+        HashMap<Point, Color> colorMap = new HashMap<>();
+
+        System.out.println("Pixels to smooth: " + smoothMap.keySet().size());
+        for (Point p : smoothMap.keySet()) {
+            double conservation = Helper.clamp(smoothMap.get(p), 0, 1);
+            Color avg = averageColor(p);
+            Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
+
+            Color newColor = new Color(
+                    (int) (Math.round(avg.getRed() * (1 - conservation))
+                            + Math.round(oldColor.getRed() * conservation)),
+                    (int) (Math.round(avg.getGreen() * (1 - conservation))
+                            + Math.round(oldColor.getGreen() * conservation)),
+                    (int) (Math.round(avg.getBlue() * (1 - conservation))
+                            + Math.round(oldColor.getBlue() * conservation)));
+
+            colorMap.put(p, newColor);
+        }
+
+        for (Point p : colorMap.keySet()) {
+            g2d.setColor(colorMap.get(p));
+            g2d.drawRect(p.x, p.y, 0, 0);
+        }
+        g2d.dispose();
+    }
+
+    /**
+     * Attempts to blend the border of the face.
+     * 
+     * @param radius The radius of the face that should be blended. Not technically
+     *               a radius... but shhh.... I'm not smart enough for that...
+     */
+    private static void blendBorder(int radius) {
+        // Point -> Conservation
+        HashMap<Point, Double> smoothMap = new HashMap<>();
+
+        for (Point p : originalGreenSet) {
+            Point[] pointsOfInterest = {
+                    new Point(p.x - 1, p.y),
+                    new Point(p.x + 1, p.y),
+                    new Point(p.x, p.y - 1),
+                    new Point(p.x, p.y + 1)
+            };
+
+            for (Point potentialPoint : pointsOfInterest) {
+                if (originalFaceSet.contains(potentialPoint)) {
+                    // Add corresponding points to smoothMap.
+                    ArrayList<Point> pointsToAdd = new ArrayList<>();
+                    Collections.addAll(pointsToAdd,
+                            Helper.pointsRectangle(potentialPoint, radius, radius));
+                    pointsToAdd.removeIf((aPoint) -> !faceSet.contains(aPoint));
+
+                    for (Point foundPoint : pointsToAdd) {
+                        smoothMap.put(foundPoint,
+                                Math.sqrt(Math.pow(foundPoint.getX() - p.x, 2) + Math.pow(foundPoint.getY() - p.y, 2))
+                                        / radius);
+                    }
+                    smoothMap.put(potentialPoint, 0.0);
+                }
+            }
+        }
+
+        extrapolatedPixels.addAll(smoothMap.keySet());
+
+        smooth(smoothMap);
     }
 
     private static void addNoise(double degree) {
@@ -451,8 +564,7 @@ public class Amongifier {
         Color averageColor = new Color(255, 255, 255);
 
         HashSet<Point> noiseSet = new HashSet<Point>();
-        noiseSet.addAll(originalGreenSet);
-        noiseSet.addAll(backpackSet);
+        noiseSet.addAll(extrapolatedPixels);
 
         for (Point p : noiseSet) {
 
@@ -535,14 +647,14 @@ public class Amongifier {
      */
     private static ArrayList<Point> getAllAdjacentPoints(Point p) {
         Point[] pointsOfInterest = {
-            new Point(p.x - 1, p.y - 1),
-            new Point(p.x + 1, p.y - 1),
-            new Point(p.x - 1, p.y + 1),
-            new Point(p.x + 1, p.y + 1),
-            new Point(p.x - 1, p.y),
-            new Point(p.x + 1, p.y),
-            new Point(p.x, p.y - 1),
-            new Point(p.x, p.y + 1)
+                new Point(p.x - 1, p.y - 1),
+                new Point(p.x + 1, p.y - 1),
+                new Point(p.x - 1, p.y + 1),
+                new Point(p.x + 1, p.y + 1),
+                new Point(p.x - 1, p.y),
+                new Point(p.x + 1, p.y),
+                new Point(p.x, p.y - 1),
+                new Point(p.x, p.y + 1)
         };
 
         ArrayList<Point> goodPoints = new ArrayList<>();
@@ -574,7 +686,7 @@ public class Amongifier {
         };
         Point[] evenMore = Helper.pointsRectangle(p, pointsRectWidth, pointsRectHeight);
 
-        return evenMore;//forceThreeEights || threeEighths ? more : normal;
+        return evenMore;// forceThreeEights || threeEighths ? more : normal;
     }
 
     private static int minPointCount() {
