@@ -27,7 +27,6 @@ public class Amongifier {
     private static HashSet<Point> extrapolatedPixels = new HashSet<>();
     private static Queue<Point> definitePixels = new ArrayDeque<>();
     private static BufferedImage pastedTemplate;
-    private static BufferedImage face;
     private static boolean threeEighths = false;
 
     private static final boolean forceThreeEights = true;
@@ -39,9 +38,8 @@ public class Amongifier {
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "Chris_FinalTestCase.png";
-    private static final String OUTPUTFILE_STRING = "cg_revisited.png";
-    
+    private static final String INPUTFILE_STRING = "Anthony_TestCase.png";
+    private static final String OUTPUTFILE_STRING = "am_transparentTest.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -56,6 +54,7 @@ public class Amongifier {
     }
 
     public static BufferedImage format(BufferedImage faceImage) {
+        faceImage = Transparentify.transparentify(faceImage);
         int desiredWidth = 570, desiredHeight = 766;
 
         double multFactor = 1.0;
@@ -114,11 +113,13 @@ public class Amongifier {
         }
 
         g.dispose();
-        /*try {
-            File file = new File("ChrisfaceScaled.png");
-            ImageIO.write(newImageFinal, "png", file);
-        } catch (IOException e) {
-        }*/
+        /*
+         * try {
+         * File file = new File("ChrisfaceScaled.png");
+         * ImageIO.write(newImageFinal, "png", file);
+         * } catch (IOException e) {
+         * }
+         */
 
         return newImageFinal;
     }
@@ -131,8 +132,7 @@ public class Amongifier {
      * @param faceImage The image to amongify.
      */
     public static BufferedImage amongify(BufferedImage faceImage) throws IOException {
-        face = faceImage;
-        BufferedImage template = ImageIO.read(new File("Among_Template_Backpack.png"));
+        BufferedImage template = ImageIO.read(new File("Among_Template_BackpackTransparent.png"));
         double ratioX = .58;
         double ratioY = .38;
 
@@ -259,7 +259,7 @@ public class Amongifier {
         int lastPrint = greenSet.size();
         int badLoops = 0;
 
-        //Extrapolate green set
+        // Extrapolate green set
         while (greenSet.size() > 0) {
             Point nextPoint = definitePixels.poll();
 
@@ -315,8 +315,6 @@ public class Amongifier {
         for (int j = 0; j < pastedTemplate.getHeight(); j++) {
             int blueIndex = -1;
             for (int i = 0; i < pastedTemplate.getWidth(); i++) {
-                Color faceColor = getColorAt(pastedTemplate, i, j, false);
-
                 if (blueSet.contains(new Point(i, j))) {
                     blueIndex = i;
                 }
@@ -548,19 +546,21 @@ public class Amongifier {
             }
         }
 
-        long red = 0;
-        long green = 0;
-        long blue = 0;
-        int colors = 0;
-        for (Point p : originalFaceSet) {
-            Color c = getColorAt(pastedTemplate, p.x, p.y, false);
-            red += c.getRed();
-            green += c.getGreen();
-            blue += c.getBlue();
-            colors++;
-        }
-        // Color averageColor = new Color((int) (red / colors), (int) (green / colors),
-        // (int) (blue / colors));
+        /*
+         * long red = 0;
+         * long green = 0;
+         * long blue = 0;
+         * int colors = 0;
+         * for (Point p : originalFaceSet) {
+         * Color c = getColorAt(pastedTemplate, p.x, p.y, false);
+         * red += c.getRed();
+         * green += c.getGreen();
+         * blue += c.getBlue();
+         * colors++;
+         * }
+         * Color averageColor = new Color((int) (red / colors), (int) (green / colors),
+         * (int) (blue / colors));
+         */
         Color averageColor = new Color(255, 255, 255);
 
         HashSet<Point> noiseSet = new HashSet<Point>();
