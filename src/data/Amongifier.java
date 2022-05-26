@@ -38,8 +38,8 @@ public class Amongifier {
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "anthony2_transparent.png";
-    private static final String OUTPUTFILE_STRING = "worldChunger.png";
+    private static final String INPUTFILE_STRING = "Anthony_TestCase.png";
+    private static final String OUTPUTFILE_STRING = "am_noSmooth.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -207,7 +207,6 @@ public class Amongifier {
         System.out.println("Non-pasted # pixels: " + num2);
         System.out.println("faceY = " + faceY);
 
-        System.out.println(greenSet.size());
         originalGreenSet = (HashSet<Point>) greenSet.clone();
         originalFaceSet = (HashSet<Point>) faceSet.clone();
 
@@ -216,7 +215,7 @@ public class Amongifier {
         }
 
         pastedTemplate = template;
-        System.out.println("Pasting Complete. Beginning Extrapolation...");
+        System.out.println("Pasting Complete.");
 
         extrapolate();
 
@@ -258,6 +257,15 @@ public class Amongifier {
         Graphics2D g2d = pastedTemplate.createGraphics();
         int lastPrint = greenSet.size();
         int badLoops = 0;
+
+        System.out.println("Starting body extrapolation with " + greenSet.size() + " total pixels");
+
+        // Prepare definitePixels
+        for (Point p : greenSet) {
+            if (threeEightsOrMore(p)) {
+                definitePixels.add(p);
+            }
+        }
 
         // Extrapolate green set
         while (greenSet.size() > 0) {
@@ -334,13 +342,19 @@ public class Amongifier {
                 g2d.drawRect(blueIndex, j, 0, 0);
             }
         }
-
-        definitePixels.clear();
         badLoops = 0;
 
         lastPrint = blueSet.size();
 
-        System.out.println("Starting backpack extrapolation...");
+        System.out.println("Starting backpack extrapolation with " + blueSet.size() + " total pixels...");
+
+        // Prepare definitePixels
+        definitePixels.clear();
+        for (Point p : greenSet) {
+            if (threeEightsOrMore(p)) {
+                definitePixels.add(p);
+            }
+        }
 
         // Extrapolate blue set
         while (blueSet.size() > 0) {
@@ -435,13 +449,7 @@ public class Amongifier {
             Color avg = averageColor(p);
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
 
-            Color newColor = new Color(
-                    (int) (Math.round(avg.getRed() * (1 - conservation))
-                            + Math.round(oldColor.getRed() * conservation)),
-                    (int) (Math.round(avg.getGreen() * (1 - conservation))
-                            + Math.round(oldColor.getGreen() * conservation)),
-                    (int) (Math.round(avg.getBlue() * (1 - conservation))
-                            + Math.round(oldColor.getBlue() * conservation)));
+            Color newColor = Helper.colorInterp(avg, oldColor, conservation);
 
             colorMap.put(p, newColor);
         }
@@ -473,13 +481,7 @@ public class Amongifier {
             Color avg = averageColor(p);
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
 
-            Color newColor = new Color(
-                    (int) (Math.round(avg.getRed() * (1 - conservation))
-                            + Math.round(oldColor.getRed() * conservation)),
-                    (int) (Math.round(avg.getGreen() * (1 - conservation))
-                            + Math.round(oldColor.getGreen() * conservation)),
-                    (int) (Math.round(avg.getBlue() * (1 - conservation))
-                            + Math.round(oldColor.getBlue() * conservation)));
+            Color newColor = Helper.colorInterp(avg, oldColor, conservation);
 
             colorMap.put(p, newColor);
         }
@@ -510,6 +512,7 @@ public class Amongifier {
             };
 
             for (Point potentialPoint : pointsOfInterest) {
+                // NOTE: potentialPoint should only ever be a point DIRECTLY on the face border.
                 if (originalFaceSet.contains(potentialPoint)) {
                     // Add corresponding points to smoothMap.
                     ArrayList<Point> pointsToAdd = new ArrayList<>();
@@ -518,9 +521,13 @@ public class Amongifier {
                     pointsToAdd.removeIf((aPoint) -> !faceSet.contains(aPoint));
 
                     for (Point foundPoint : pointsToAdd) {
-                        smoothMap.put(foundPoint,
-                                Math.sqrt(Math.pow(foundPoint.getX() - p.x, 2) + Math.pow(foundPoint.getY() - p.y, 2))
-                                        / radius);
+                        double conservation = Math.sqrt(
+                                Math.pow(foundPoint.getX() - p.x, 2) + Math.pow(foundPoint.getY() - p.y, 2)) / radius;
+                        Double currentConservation = smoothMap.get(foundPoint);
+                        if (currentConservation == null)
+                            smoothMap.put(foundPoint, conservation);
+                        else if (conservation < currentConservation)
+                            smoothMap.put(foundPoint, conservation);
                     }
                     smoothMap.put(potentialPoint, 0.0);
                 }
@@ -624,15 +631,18 @@ public class Amongifier {
 
         assert colors.size() > 0;
         Color averageColor;
-        int red = 0;
-        int green = 0;
-        int blue = 0;
+        double red = 0;
+        double green = 0;
+        double blue = 0;
         for (Color c : colors) {
             red += c.getRed();
             green += c.getGreen();
             blue += c.getBlue();
         }
-        averageColor = new Color(red / colors.size(), green / colors.size(), blue / colors.size());
+        averageColor = new Color(
+                (int) Math.round(red / colors.size()),
+                (int) Math.round(green / colors.size()),
+                (int) Math.round(blue / colors.size()));
         return averageColor;
     }
 

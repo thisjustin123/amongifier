@@ -1,4 +1,5 @@
 import java.awt.Point;
+import java.awt.Color;
 
 public class Helper {
     public static int clamp(int num, int min, int max) {
@@ -37,6 +38,23 @@ public class Helper {
         }
 
         return points;
+    }
+
+    public static Color colorInterp(Color c1, Color c2, double fraction) {
+        float fracFloat = (float) fraction;
+
+        float[] hsv1 = new float[3];
+        Color.RGBtoHSB(c1.getRed(), c1.getGreen(), c1.getBlue(), hsv1);
+        float[] hsv2 = new float[3];
+        Color.RGBtoHSB(c2.getRed(), c2.getGreen(), c2.getBlue(), hsv2);
+
+        float[] newHSV = {
+            hsv1[0] * (1-fracFloat) + hsv2[0] * fracFloat,
+            hsv1[1] * (1-fracFloat) + hsv2[1] * fracFloat,
+            hsv1[2] * (1-fracFloat) + hsv2[2] * fracFloat
+        };
+
+        return Color.getHSBColor(newHSV[0], newHSV[1], newHSV[2]);
     }
 
 }
