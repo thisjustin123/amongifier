@@ -25,13 +25,13 @@ public class Helper {
         int minX = p.x - deltaX;
         int maxX = p.x + deltaX;
 
-        Point[] points = new Point[(deltaX*2+1)*(deltaY*2+1)-1];
+        Point[] points = new Point[(deltaX * 2 + 1) * (deltaY * 2 + 1) - 1];
         int ind = 0;
 
         for (int j = minY; j <= maxY; j++) {
             for (int i = minX; i <= maxX; i++) {
-                if (!(i==p.x && j==p.y)) {
-                    points[ind] = new Point(i,j);
+                if (!(i == p.x && j == p.y)) {
+                    points[ind] = new Point(i, j);
                     ind++;
                 }
             }
@@ -40,6 +40,15 @@ public class Helper {
         return points;
     }
 
+    /**
+     * Interps or averages between color 1 and color 2. A fraction of 1 means only
+     * color 2 is used. A fraction of 0 means only color 1 is used.
+     * 
+     * @param c1
+     * @param c2
+     * @param fraction
+     * @return
+     */
     public static Color colorInterp(Color c1, Color c2, double fraction) {
         float fracFloat = (float) fraction;
 
@@ -49,9 +58,9 @@ public class Helper {
         Color.RGBtoHSB(c2.getRed(), c2.getGreen(), c2.getBlue(), hsv2);
 
         float[] newHSV = {
-            hsv1[0] * (1-fracFloat) + hsv2[0] * fracFloat,
-            hsv1[1] * (1-fracFloat) + hsv2[1] * fracFloat,
-            hsv1[2] * (1-fracFloat) + hsv2[2] * fracFloat
+                hsv1[0] * (1 - fracFloat) + hsv2[0] * fracFloat,
+                hsv1[1] * (1 - fracFloat) + hsv2[1] * fracFloat,
+                hsv1[2] * (1 - fracFloat) + hsv2[2] * fracFloat
         };
 
         return Color.getHSBColor(newHSV[0], newHSV[1], newHSV[2]);

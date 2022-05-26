@@ -6,8 +6,8 @@ import java.util.*;
 
 public class Transparentify {
 
-    private static final String INPUTFILE_STRING = "Among_Template_BackpackWhite.png";
-    private static final String OUTPUTFILE_STRING = "Among_Template_Transparent.png";
+    private static final String INPUTFILE_STRING = "data/Among_Template_BackpackWhite.png";
+    private static final String OUTPUTFILE_STRING = "data/Among_Template_Transparent.png";
 
     public static void main(String[] args) {
         try {

@@ -29,8 +29,6 @@ public class Amongifier {
     private static BufferedImage pastedTemplate;
     private static boolean threeEighths = false;
 
-    private static final boolean forceThreeEights = true;
-
     // Higher is better, but gets much more costly.
     private static final int pointsRectWidth = 12;
     private static final int pointsRectHeight = 12;
@@ -38,8 +36,8 @@ public class Amongifier {
     private static HashSet<Point> originalGreenSet = new HashSet<>();
     private static HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "Anthony_TestCase.png";
-    private static final String OUTPUTFILE_STRING = "am_noSmooth.png";
+    private static final String INPUTFILE_STRING = "data/Anthony_TestCase.png";
+    private static final String OUTPUTFILE_STRING = "data/am_noSmooth.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -113,13 +111,6 @@ public class Amongifier {
         }
 
         g.dispose();
-        /*
-         * try {
-         * File file = new File("ChrisfaceScaled.png");
-         * ImageIO.write(newImageFinal, "png", file);
-         * } catch (IOException e) {
-         * }
-         */
 
         return newImageFinal;
     }
@@ -132,7 +123,7 @@ public class Amongifier {
      * @param faceImage The image to amongify.
      */
     public static BufferedImage amongify(BufferedImage faceImage) throws IOException {
-        BufferedImage template = ImageIO.read(new File("Among_Template_BackpackTransparent.png"));
+        BufferedImage template = ImageIO.read(new File("data/Among_Template_BackpackTransparent.png"));
         double ratioX = .58;
         double ratioY = .38;
 
@@ -155,7 +146,7 @@ public class Amongifier {
                 }
             }
         }
-        System.out.println("Num non-transparent pixels: " + num + ", " + num3);
+        System.out.println("Num non-transparent pixels: " + num + ", " + num3 + " (Numbers should be the same!)");
         assert num == num3;
 
         for (int i = 0; i < template.getWidth(); i++) {
@@ -199,16 +190,11 @@ public class Amongifier {
             }
             faceX++;
         }
-        System.out.println("Looped from: i = " + (midPixel.x - faceImage.getWidth() / 2) + " to "
-                + (midPixel.x + faceImage.getWidth() / 2));
-        System.out.println("Looped from: j = " + (midPixel.y - faceImage.getHeight() / 2) + " to "
-                + (midPixel.y + faceImage.getHeight() / 2));
         System.out.println("Pasted # pixels: " + num);
         System.out.println("Non-pasted # pixels: " + num2);
-        System.out.println("faceY = " + faceY);
 
-        originalGreenSet = (HashSet<Point>) greenSet.clone();
-        originalFaceSet = (HashSet<Point>) faceSet.clone();
+        originalGreenSet = new HashSet<Point>(greenSet);
+        originalFaceSet = new HashSet<Point>(faceSet);
 
         for (Point p : greenSet) {
             remainingGreenPixels.add(p);
@@ -230,6 +216,8 @@ public class Amongifier {
 
         File file = new File(OUTPUTFILE_STRING);
         ImageIO.write(template, "png", file);
+
+        System.out.println("Done! Outputting file " + OUTPUTFILE_STRING);
 
         return template;
     }
@@ -553,37 +541,16 @@ public class Amongifier {
             }
         }
 
-        /*
-         * long red = 0;
-         * long green = 0;
-         * long blue = 0;
-         * int colors = 0;
-         * for (Point p : originalFaceSet) {
-         * Color c = getColorAt(pastedTemplate, p.x, p.y, false);
-         * red += c.getRed();
-         * green += c.getGreen();
-         * blue += c.getBlue();
-         * colors++;
-         * }
-         * Color averageColor = new Color((int) (red / colors), (int) (green / colors),
-         * (int) (blue / colors));
-         */
-        Color averageColor = new Color(255, 255, 255);
-
         HashSet<Point> noiseSet = new HashSet<Point>();
         noiseSet.addAll(extrapolatedPixels);
 
         for (Point p : noiseSet) {
 
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
-            int r = Helper.clamp((int) (Math.round(oldColor.getRed() * (1 - degree))
-                    + Math.round(averageColor.getRed() * degree * noiseMatrix[p.x][p.y])), 0, 255);
-            int g = Helper.clamp((int) (Math.round(oldColor.getGreen() * (1 - degree))
-                    + Math.round(averageColor.getGreen() * degree * noiseMatrix[p.x][p.y])), 0, 255);
-            int b = Helper.clamp((int) (Math.round(oldColor.getBlue() * (1 - degree))
-                    + Math.round(averageColor.getBlue() * degree * noiseMatrix[p.x][p.y])), 0, 255);
+            Color noiseColor = new Color((float) noiseMatrix[p.x][p.y], (float) noiseMatrix[p.x][p.y],
+                    (float) noiseMatrix[p.x][p.y]);
 
-            Color weightedColor = new Color(r, g, b);
+            Color weightedColor = Helper.colorInterp(oldColor, noiseColor, degree);
             g2d.setColor(weightedColor);
             g2d.drawRect(p.x, p.y, 0, 0);
         }
@@ -678,29 +645,9 @@ public class Amongifier {
     }
 
     private static Point[] getPointsOfInterest(Point p) {
-        Point[] normal = {
-                new Point(p.x - 1, p.y),
-                new Point(p.x + 1, p.y),
-                new Point(p.x, p.y - 1),
-                new Point(p.x, p.y + 1)
-        };
-        Point[] more = {
-                new Point(p.x - 1, p.y - 1),
-                new Point(p.x + 1, p.y - 1),
-                new Point(p.x - 1, p.y + 1),
-                new Point(p.x + 1, p.y + 1),
-                new Point(p.x - 1, p.y),
-                new Point(p.x + 1, p.y),
-                new Point(p.x, p.y - 1),
-                new Point(p.x, p.y + 1)
-        };
         Point[] evenMore = Helper.pointsRectangle(p, pointsRectWidth, pointsRectHeight);
 
-        return evenMore;// forceThreeEights || threeEighths ? more : normal;
-    }
-
-    private static int minPointCount() {
-        return forceThreeEights || threeEighths ? 3 : 2;
+        return evenMore;
     }
 
     private static boolean threeEightsOrMore(Point p) {
