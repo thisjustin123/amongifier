@@ -1,1 +1,1 @@
-web: java -jar target/amongifier-0.0.1-SNAPSHOT.jar
+web: java -jar -Dserver.port=$PORT target/amongifier-0.0.1-SNAPSHOT.jar 
