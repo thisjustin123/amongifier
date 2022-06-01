@@ -41,8 +41,8 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/Anthony_TestCase.png";
-    private static final String OUTPUTFILE_STRING = "data/am_noSmooth.png";
+    private static final String INPUTFILE_STRING = "data/sr_test1.png";
+    private static final String OUTPUTFILE_STRING = "data/sr_amongified.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -52,6 +52,8 @@ public class Amongifier {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
             image = a.format(image);
             a.amongify(image);
+            File file = new File(OUTPUTFILE_STRING);
+            ImageIO.write(a.pastedTemplate, "png", file);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -219,9 +221,6 @@ public class Amongifier {
         }
 
         g2d.dispose();
-
-        File file = new File(OUTPUTFILE_STRING);
-        ImageIO.write(template, "png", file);
 
         System.out.println("Done! Outputting file " + OUTPUTFILE_STRING);
 
