@@ -4,8 +4,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.json.simple.*;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -21,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.awt.Point;
 
 @RestController
 public class AmongifierController {
@@ -45,7 +48,26 @@ public class AmongifierController {
      * @return
      */
     @PostMapping("/amongifier/add")
-    public String amongify(@RequestBody String base64Image) {
+    public String amongify(@RequestBody String responseJSON) {
+        JSONParser parser = new JSONParser();
+        JSONObject json = new JSONObject();
+        try {
+            json = (JSONObject) parser.parse(responseJSON);
+        } catch (ParseException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        String base64Image = json.get("image").toString();
+        int smoothing = Integer.parseInt(json.get("smooth").toString());
+        int borderSmoothing = Integer.parseInt(json.get("border").toString());
+        double midPointX = Double.parseDouble(json.get("midPointX").toString());
+        double midPointY = Double.parseDouble(json.get("midPointY").toString());
+        String points = json.get("points").toString();
+        boolean forceAspectRatio = json.get("aspectRatio").toString().contains("true");
+
+        System.out.println("Border points: " + points);
+
         String imagePortion = base64Image.substring(base64Image.indexOf(",") + 1);
         byte[] imageBytes = DatatypeConverter.parseBase64Binary(imagePortion);
         Amongifier a = new Amongifier();

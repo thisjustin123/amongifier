@@ -41,8 +41,8 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/sr_test1.png";
-    private static final String OUTPUTFILE_STRING = "data/sr_amongified.png";
+    private static final String INPUTFILE_STRING = "data/jp_tc1.png";
+    private static final String OUTPUTFILE_STRING = "data/jp_amongified.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -65,9 +65,8 @@ public class Amongifier {
 
         double multFactor = 1.0;
         int newWidth = desiredWidth, newHeight = desiredHeight;
-        // Image is too small in both dimensions
         if (!FORCE_ASPECT_RATIO) {
-
+            // Image is too small in both dimensions
             if (faceImage.getWidth() < desiredWidth && faceImage.getHeight() < desiredHeight) {
                 multFactor = Math.min(((double) (desiredWidth)) / faceImage.getWidth(),
                         ((double) (desiredHeight)) / faceImage.getHeight());
