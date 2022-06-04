@@ -66,12 +66,16 @@ public class AmongifierController {
         String points = json.get("points").toString();
         boolean forceAspectRatio = json.get("aspectRatio").toString().contains("true");
 
-        System.out.println("Border points: " + points);
+        //System.out.println("Border points: " + points);
+        System.out.println(1);
 
         String imagePortion = base64Image.substring(base64Image.indexOf(",") + 1);
         byte[] imageBytes = DatatypeConverter.parseBase64Binary(imagePortion);
         Amongifier a = new Amongifier();
         String key = generateKey();
+
+        System.out.println(1);
+
         AmongifierThread thread = new AmongifierThread() {
             public void run() {
                 try {

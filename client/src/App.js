@@ -10,8 +10,6 @@ import LoadingSpin from 'react-loading-spin'
 import worker from './worker'
 import WorkerBuilder from './WorkerBuilder';
 
-export var [postState, setPostState] = [null, null];
-
 function App() {
   var [state, setState] = useState(0);
   var [canvasState, setCanvasState] = useState({ width: 100, height: 100 });
@@ -210,6 +208,11 @@ function App() {
           image: state.image
         })
         var myWorker = new WorkerBuilder(worker)
+        console.log(JSON.stringify(makeInputJson()))
+
+        myWorker.onmessage = (message) => {
+          console.log("Message from worker: " + message.data);
+        }
 
         myWorker.postMessage({
           method: 'POST',
@@ -222,7 +225,6 @@ function App() {
           body: JSON.stringify(makeInputJson()),
           mode: 'cors'
         });
-
       }, 800)
     }
   }
@@ -401,16 +403,16 @@ function App() {
   function makeInputJson() {
 
     const json = {
-      "image": state.image,
+      
       "smooth": "" + smoothSlider.current.getValue(),
       "border": "" + borderSlider.current.getValue(),
       "midPointX": "" + midPoint.x,
       "midPointY": "" + midPoint.y,
       "points": "" + points.toString(),
-      "aspectRatio": "" + checkedState.toString()
+      "aspectRatio": "" + checkedState.toString(),
+      "image": state.image
     }
 
-    console.log(json)
     return json
   }
 
@@ -475,7 +477,7 @@ function App() {
 
         {state.screen == 3 &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
-            <p>Communicating with the server...</p>
+            <p>{postState.text}</p>
             <LoadingSpin primaryColor='#005566' />
           </div>
         }
