@@ -210,14 +210,17 @@ function App() {
           image: state.image
         })
         var myWorker = new WorkerBuilder(worker)
+
         myWorker.postMessage({
           method: 'POST',
+          credentials: 'include',
           headers: {
+            'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'Origin':'http://localhost:3000',
           },
           body: JSON.stringify(makeInputJson()),
-          mode: 'no-cors'
+          mode: 'cors'
         });
 
       }, 800)
