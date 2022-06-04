@@ -2,6 +2,8 @@ package com.thisjustin.amongifier;
 
 import java.awt.Point;
 import java.awt.Color;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Helper {
     public static int clamp(int num, int min, int max) {
@@ -40,6 +42,29 @@ public class Helper {
         }
 
         return points;
+    }
+
+    /**
+     * Returns a list of valid, immediately adjacent points to the given point.
+     * @param p
+     * @param boundWidth
+     * @param boundHeight
+     * @return
+     */
+    public static List<Point> adjacentPoints(Point p, int boundWidth, int boundHeight) {
+        ArrayList<Point> list = new ArrayList<>();
+        list.add(new Point(p.x-1, p.y));
+        list.add(new Point(p.x+1, p.y));
+        list.add(new Point(p.x, p.y-1));
+        list.add(new Point(p.x, p.y+1));
+        for (int i = 0; i < list.size(); i++) {
+            Point point = list.get(i);
+            if (point.getX() < 0 || point.getX() > boundWidth-1 || point.getY() < 0 || point.getY() > boundHeight-1) {
+                list.remove(point);
+                i--;
+            }
+        }
+        return list;
     }
 
     /**

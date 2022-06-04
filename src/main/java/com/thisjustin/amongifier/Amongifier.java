@@ -8,6 +8,7 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import java.awt.BasicStroke;
 
 import java.util.*;
 
@@ -41,8 +42,8 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/jp_tc1.png";
-    private static final String OUTPUTFILE_STRING = "data/jp_amongified.png";
+    private static final String INPUTFILE_STRING = "data/faceCutout_tc1.png";
+    private static final String OUTPUTFILE_STRING = "data/faceCutout_output1.png";
 
     private static final boolean FORCE_ASPECT_RATIO = false;
 
@@ -50,13 +51,133 @@ public class Amongifier {
         Amongifier a = new Amongifier();
         try {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
-            image = a.format(image);
+            /*image = a.format(image);
             a.amongify(image);
             File file = new File(OUTPUTFILE_STRING);
-            ImageIO.write(a.pastedTemplate, "png", file);
+            ImageIO.write(a.pastedTemplate, "png", file);*/
+
+            Point[] facePoints = {new Point(50, 50), new Point(78, 450), new Point(506, 175)};
+            BufferedImage o = a.cutOutFace(image, facePoints);
+            File file = new File(OUTPUTFILE_STRING);
+            ImageIO.write(o, "png", file);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Takes in an array of face points and an image with a face to cut out.
+     * 
+     * @param wholeImage
+     * @param facePoints
+     * @return wholeImage with its face cut out.
+     */
+    public BufferedImage cutOutFace(BufferedImage wholeImage, Point[] facePoints) {
+        // An image with the face bordered in black that is purely white otherwise.
+        BufferedImage whiteImage = new BufferedImage(wholeImage.getWidth(), wholeImage.getHeight(),
+                BufferedImage.TYPE_INT_RGB);
+        Graphics2D whiteG = whiteImage.createGraphics();
+
+        whiteG.setColor(Color.WHITE);
+        whiteG.fillRect(0, 0, whiteImage.getWidth(), whiteImage.getHeight());
+
+        // Draw the black border
+        whiteG.setColor(Color.BLACK);
+        whiteG.setStroke(new BasicStroke(2));
+        for (int i = 1; i < facePoints.length; i++) {
+            Point prevPoint = facePoints[i - 1];
+            Point thisPoint = facePoints[i];
+
+            whiteG.drawLine(prevPoint.x, prevPoint.y, thisPoint.x, thisPoint.y);
+        }
+        whiteG.drawLine(facePoints[facePoints.length - 1].x, facePoints[facePoints.length - 1].y, facePoints[0].x,
+                facePoints[0].y);
+        // Postcondition: whiteImage now contains the face bordered in black.
+
+        // Fill the non-face region of whiteImage with some dumb color, let's say BLUE.
+        whiteG.setColor(Color.BLUE);
+        /**
+         * Contains both checked and unchecked points. This means you have to check
+         * AFTER adding.
+         */
+        ArrayDeque<Point> pointsToCheck = new ArrayDeque<>();
+        HashSet<Point> checkedPoints = new HashSet<>();
+        HashSet<Point> outsideFacePoints = new HashSet<>();
+        HashSet<Point> outermostBorderPoints = new HashSet<>();
+        // Add all border points to pointsToCheck
+        for (int i = 0; i < whiteImage.getWidth(); i++) {
+            pointsToCheck.add(new Point(i, 0));
+            pointsToCheck.add(new Point(i, whiteImage.getHeight() - 1));
+        }
+        for (int j = 1; j < whiteImage.getHeight() - 1; j++) {
+            pointsToCheck.add(new Point(0, j));
+            pointsToCheck.add(new Point(whiteImage.getWidth() - 1, j));
+        }
+        while (pointsToCheck.size() > 0) {
+            Point p = pointsToCheck.pop();
+            if (!checkedPoints.contains(p)) {
+                if (!getColorAt(whiteImage, p.x, p.y, false).equals(Color.BLACK)) {
+                    outsideFacePoints.add(p);
+                    List<Point> nextPoints = Helper.adjacentPoints(p, whiteImage.getWidth(), whiteImage.getHeight());
+                    pointsToCheck.addAll(nextPoints);
+                } else {
+                    outermostBorderPoints.add(p);
+                }
+            }
+
+            checkedPoints.add(p);
+        }
+        // Postcondition: outsideFacePoints now contains all points that are outside the
+        // face. and outermostBorderPoints contains all the... outermost face border
+        // points.
+        for (Point p : outsideFacePoints) {
+            whiteG.fillRect(p.x, p.y, 0, 0);
+        }
+
+        Object[] tempArray = outermostBorderPoints.toArray();
+        ArrayList<Point> borderPointsList = new ArrayList<>();
+        for (Object o : tempArray) {
+            borderPointsList.add((Point) o);
+        }
+        Point minXPoint = borderPointsList.get(0);
+        Point minYPoint = borderPointsList.get(0);
+        Point maxXPoint = borderPointsList.get(0);
+        Point maxYPoint = borderPointsList.get(0);
+        for (Point p : borderPointsList) {
+            if (p.x < minXPoint.x)
+                minXPoint = p;
+            if (p.y < minYPoint.y)
+                minYPoint = p;
+            if (p.x > maxXPoint.x)
+                maxXPoint = p;
+            if (p.y > maxYPoint.y)
+                maxYPoint = p;
+        }
+        int newWidth = maxXPoint.x - minXPoint.x + 1;
+        int newHeight = maxYPoint.y - minYPoint.y + 1;
+
+        BufferedImage finalImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D finalImageG = finalImage.createGraphics();
+        finalImageG.setBackground(new Color(144,23,4,0));
+        finalImageG.clearRect(0, 0, finalImage.getWidth(), finalImage.getHeight());
+        int translatedI = 0, translatedJ = 0;
+        for (int i = minXPoint.x; i <= maxXPoint.x; i++) {
+            translatedJ = 0;
+            for (int j = minYPoint.y; j <= maxYPoint.y; j++) {
+                // If this point is part of the face...
+                if (!outsideFacePoints.contains(new Point(i, j))) {
+                    Color c = getColorAt(wholeImage, i, j, false);
+                    finalImageG.setColor(c);
+                    finalImageG.drawRect(translatedI, translatedJ, 0, 0);
+                } else {
+
+                }
+
+                translatedJ++;
+            }
+            translatedI++;
+        }
+        return finalImage;
     }
 
     public BufferedImage format(BufferedImage faceImage) {
