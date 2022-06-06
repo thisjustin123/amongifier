@@ -33,11 +33,11 @@ public class Amongifier {
     private boolean threeEighths = false;
 
     // Higher is better, but gets much more costly. Good number is 12.
-    private static final int pointsRectWidth = 12;
-    private static final int pointsRectHeight = 12;
+    private static int pointsRectWidth = 12;
+    private static int pointsRectHeight = 12;
 
     // Higher is better, but gets much more costly. Good number is 15.
-    private static final int borderBlendRadius = 15;
+    private static int borderBlendRadius = 15;
 
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
@@ -45,18 +45,36 @@ public class Amongifier {
     private static final String INPUTFILE_STRING = "data/faceCutout_tc1.png";
     private static final String OUTPUTFILE_STRING = "data/faceCutout_output1.png";
 
-    private static final boolean FORCE_ASPECT_RATIO = false;
+    private static boolean FORCE_ASPECT_RATIO = false;
+
+    /** Scales to the cut out, properly formatted image, not the raw one. */
+    private static double midPointX = .5, midPointY = .5;;
+
+    public Amongifier() {
+
+    }
+
+    public Amongifier(int pointsRectRadius, int bbRad, boolean forceAspectRatio, double midx, double midy) {
+        pointsRectWidth = pointsRectRadius;
+        pointsRectHeight = pointsRectRadius;
+        borderBlendRadius = bbRad;
+        FORCE_ASPECT_RATIO = forceAspectRatio;
+        midPointX = midx;
+        midPointY = midy;
+    }
 
     public static void main(String[] args) {
         Amongifier a = new Amongifier();
         try {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
-            /*image = a.format(image);
-            a.amongify(image);
-            File file = new File(OUTPUTFILE_STRING);
-            ImageIO.write(a.pastedTemplate, "png", file);*/
+            /*
+             * image = a.format(image);
+             * a.amongify(image);
+             * File file = new File(OUTPUTFILE_STRING);
+             * ImageIO.write(a.pastedTemplate, "png", file);
+             */
 
-            Point[] facePoints = {new Point(50, 50), new Point(78, 450), new Point(506, 175)};
+            Point[] facePoints = { new Point(50, 50), new Point(78, 450), new Point(506, 175) };
             BufferedImage o = a.cutOutFace(image, facePoints);
             File file = new File(OUTPUTFILE_STRING);
             ImageIO.write(o, "png", file);
@@ -73,6 +91,9 @@ public class Amongifier {
      * @return wholeImage with its face cut out.
      */
     public BufferedImage cutOutFace(BufferedImage wholeImage, Point[] facePoints) {
+        if (facePoints.length == 0) {
+            return wholeImage;
+        }
         // An image with the face bordered in black that is purely white otherwise.
         BufferedImage whiteImage = new BufferedImage(wholeImage.getWidth(), wholeImage.getHeight(),
                 BufferedImage.TYPE_INT_RGB);
@@ -158,7 +179,7 @@ public class Amongifier {
 
         BufferedImage finalImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D finalImageG = finalImage.createGraphics();
-        finalImageG.setBackground(new Color(144,23,4,0));
+        finalImageG.setBackground(new Color(144, 23, 4, 0));
         finalImageG.clearRect(0, 0, finalImage.getWidth(), finalImage.getHeight());
         int translatedI = 0, translatedJ = 0;
         for (int i = minXPoint.x; i <= maxXPoint.x; i++) {
@@ -180,6 +201,15 @@ public class Amongifier {
         return finalImage;
     }
 
+    /**
+     * Stretches the input image to a good size for the amongifier template.
+     * If FORCE_ASPECT_RATIO is true, the image's aspect ratio will be ignored, and
+     * this method will instead stretch the image to a tried-and-tested good aspect
+     * ratio for the program.
+     * 
+     * @param faceImage
+     * @return
+     */
     public BufferedImage format(BufferedImage faceImage) {
         faceImage = Transparentify.transparentify(faceImage);
         int desiredWidth = 570, desiredHeight = 766;
@@ -249,15 +279,22 @@ public class Amongifier {
      * it.
      * 
      * @param faceImage The image to amongify.
+     * @throws Exception
      */
-    public BufferedImage amongify(BufferedImage faceImage) throws IOException {
+    public BufferedImage amongify(BufferedImage faceImage) throws Exception {
         BufferedImage template = ImageIO.read(new File("data/Among_Template_BackpackTransparent.png"));
         double ratioX = .58;
         double ratioY = .38;
 
         Graphics2D g2d = template.createGraphics();
 
-        Point midPixel = new Point((int) (template.getWidth() * ratioX), (int) (template.getHeight() * ratioY));
+        Point midPixel = new Point(
+                (int) (template.getWidth() * ratioX)
+                        - Math.toIntExact(Math.round((midPointX - .5) * faceImage.getWidth())),
+                (int) (template.getHeight() * ratioY)
+                        - Math.toIntExact(Math.round((midPointY - .5) * faceImage.getHeight())));
+
+        System.out.println("Mid pixel: " + midPixel.toString());
 
         System.out.println("Image width: " + faceImage.getWidth() + ", Image height: " + faceImage.getHeight());
         int num = 0;
@@ -365,8 +402,9 @@ public class Amongifier {
      * Fills in the remaining green space of the image.
      * 
      * @param image
+     * @throws Exception
      */
-    private void extrapolate() {
+    private void extrapolate() throws Exception {
         Graphics2D g2d = pastedTemplate.createGraphics();
         int lastPrint = greenSet.size();
         int badLoops = 0;
@@ -428,6 +466,7 @@ public class Amongifier {
 
                 if (badLoops > 10) {
                     System.out.println("Stuck with " + greenSet.size() + " pixels remaining.");
+                    throw new Exception("The amongifier got stuck. Something may have caused the image to paste poorly or incorrectly.");
                 }
             }
         }

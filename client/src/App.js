@@ -8,20 +8,29 @@ import ElementRef from 'react';
 import DrawableCanvas from 'react-drawable-canvas'
 import LoadingSpin from 'react-loading-spin'
 import worker from './worker'
+import circularWorker from './circularWorker'
 import WorkerBuilder from './WorkerBuilder';
+import { saveAs } from 'file-saver'
+import Rotator from 'exif-auto-rotate';
+import { copyImageToClipboard } from 'copy-image-clipboard'
+
+const originLink = "http://localhost:3000"
+var points = [];
+var absolutePoints = [];
+var midPoint = { x: -1, y: -1 }
+var pureName = ""
 
 function App() {
   var [state, setState] = useState(0);
   var [canvasState, setCanvasState] = useState({ width: 100, height: 100 });
-  var [checkedState, setCheckedState] = useState(false);
+  var [checkedState, setCheckedState] = useState({ aspect: false, mirror: false });
   var [postState, setPostState] = useState({ text: "Communicating with the server...", progress: 0, stage: 0 });
   var [boundaryState, setBoundaryState] = useState({
     x: { min: 0, max: 1 },
     y: { min: 0, max: 1 }
   })
+  var [copiedState, setCopiedState] = useState("Copy to Clipboard")
 
-  var points = [];
-  var absolutePoints = [];
   var xs = { min: 0, max: 1 }
   var ys = { min: 0, max: 1 }
 
@@ -71,17 +80,116 @@ function App() {
 
   const handleFileInput = (e) => {
     if (!state.fadeOut) {
-      var image = e.target.files[0]
-
       let reader = new FileReader();
-      reader.onload = (e) => {
+      if (e.target.files[0] != undefined) {
+        let fullName = e.target.files[0].name;
+        let extension = fullName.split('.').pop().toLowerCase();
+        pureName = fullName.split('.')[0]
+
+        reader.onload = (e) => {
+          var img = new Image;
+          setState({
+            image: e.target.result,
+            isValid: img != null,
+            screen: 0
+          });
+
+          img.src = e.target.result;
+        };
+
+        if (extension == "jpg" || extension == "jpeg") {
+          setTimeout(() => {
+            if (state.image == null) {
+              reader.readAsDataURL(e.target.files[0]);
+            }
+          }, 800);
+          Rotator.createRotatedImage(
+            e.target.files[0],
+            "base64",
+            (uri) => {
+              setState({
+                image: uri,
+                isValid: uri != null,
+                screen: 0
+              });
+            }
+          );
+        }
+        else
+          reader.readAsDataURL(e.target.files[0]);
+      }
+      else {
         setState({
-          image: e.target.result,
-          isValid: image != null,
+          image: state.image,
+          isValid: false,
           screen: 0
         });
-      };
-      reader.readAsDataURL(e.target.files[0]);
+      }
+    }
+
+  }
+
+  const saveFile = () => {
+    saveAs(
+      state.finalImage,
+      pureName + "_amongified.png"
+    );
+  };
+
+  const copyImage = () => {
+    copyImageToClipboard(state.finalImage)
+      .then(() => {
+        console.log('Image Copied')
+      })
+      .catch((e) => {
+        console.log('Error: ', e.message)
+      })
+    setCopiedState("Copied!")
+    setTimeout(() => {
+      setCopiedState("Copy to Clipboard")
+    }, 1000)
+  }
+
+  const moveBackToHome = () => {
+    if (!state.fadeOut) {
+      setState({
+        isValid: false,
+        fadeOut: true,
+        fadeIn: false,
+        screen: 4,
+        image: null,
+        finalImage: state.finalImage
+      })
+      setTimeout(() => {
+        setState({
+          isValid: false,
+          fadeOut: false,
+          fadeIn: true,
+          screen: 0,
+          image: null
+        })
+      }, 800);
+    }
+  }
+
+  const moveBackTo1 = () => {
+    if (!state.fadeOut) {
+      setState({
+        isValid: false,
+        fadeOut: true,
+        fadeIn: false,
+        screen: 1,
+        image: state.image
+      })
+      setTimeout(() => {
+        setState({
+          isValid: false,
+          fadeOut: false,
+          fadeIn: true,
+          screen: 0,
+          image: null
+        })
+      }, 800);
     }
   }
 
@@ -212,6 +320,46 @@ function App() {
 
         myWorker.onmessage = (message) => {
           console.log("Message from worker: " + message.data);
+          const key = message.data
+
+          var myCircularWorker = new WorkerBuilder(circularWorker)
+          myCircularWorker.onmessage = (circleMessage) => {
+            console.log("Circular message: " + circleMessage.data);
+
+            if (circleMessage.data.toString().includes("Incomplete")) {
+              setTimeout(() => {
+                //Circular call to circle Worker
+                myCircularWorker.postMessage({
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Origin': originLink,
+                  },
+                  body: JSON.stringify({ "key": key.toString() }),
+                  mode: 'cors'
+                })
+              }, 1000)
+            }
+            else {
+              console.log("Image found! Base64: " + circleMessage.data)
+              moveOnTo5(circleMessage.data)
+            }
+          }
+          //Initial call to circle Worker
+          myCircularWorker.postMessage({
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': originLink,
+            },
+            body: JSON.stringify({ "key": key.toString() }),
+            mode: 'cors'
+          })
+
         }
 
         myWorker.postMessage({
@@ -220,7 +368,7 @@ function App() {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Origin':'http://localhost:3000',
+            'Origin': originLink,
           },
           body: JSON.stringify(makeInputJson()),
           mode: 'cors'
@@ -229,27 +377,56 @@ function App() {
     }
   }
 
+  const moveOnTo5 = (finalImage) => {
+    setState({
+      isValid: false,
+      fadeIn: false,
+      fadeOut: true,
+      screen: 3,
+      image: state.image,
+      finalImage: finalImage
+    })
+
+    setTimeout(() => {
+      setState({
+        isValid: false,
+        fadeOut: false,
+        fadeIn: true,
+        screen: 4,
+        image: state.image,
+        finalImage: finalImage
+      })
+    }, 800)
+  }
+
+
   var firstPoint = { x: -1, y: -1 }
   var prevPoint = { x: -1, y: -1 }
 
   function mouseDown(e) {
-    absolutePoints = [];
-    points = []
-    isMouseDown = true
-    prevPoint = { x: -1, y: -1 }
-    firstPoint = { x: -1, y: -1 }
+    const imageBeginX = mainImageRef.current.getBoundingClientRect().x
+    const imageEndX = imageBeginX + mainImageRef.current.getBoundingClientRect().width;
+    const imageBeginY = mainImageRef.current.getBoundingClientRect().y
+    const imageEndY = imageBeginY + mainImageRef.current.getBoundingClientRect().height;
+    if (e.clientX > imageBeginX && e.clientX < imageEndX && e.clientY > imageBeginY && e.clientY < imageEndY) {
+      absolutePoints = [];
+      points = []
+      isMouseDown = true
+      prevPoint = { x: -1, y: -1 }
+      firstPoint = { x: -1, y: -1 }
 
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
+      const canvas = canvasRef.current
+      const context = canvas.getContext('2d')
 
-    context.clearRect(0, 0, canvasRef.current.getBoundingClientRect().width, canvasRef.current.getBoundingClientRect().height)
+      context.clearRect(0, 0, canvasRef.current.getBoundingClientRect().width, canvasRef.current.getBoundingClientRect().height)
 
-    const imageBeginX = canvasRef.current.getBoundingClientRect().x
-    const imageBeginY = canvasRef.current.getBoundingClientRect().y
+      const canvasBeginX = canvasRef.current.getBoundingClientRect().x
+      const canvasBeginY = canvasRef.current.getBoundingClientRect().y
 
-    firstPoint = { x: e.clientX - imageBeginX, y: e.clientY - imageBeginY }
+      firstPoint = { x: e.clientX - canvasBeginX, y: e.clientY - canvasBeginY }
 
-    logPoint(e)
+      logPoint(e)
+    }
   }
 
   function mouseMove(e) {
@@ -308,36 +485,48 @@ function App() {
   }
 
   function mouseUp(e) {
-    isMouseDown = false
+    if (isMouseDown) {
+      isMouseDown = false
 
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
-    context.fillStyle = "rgba(0, 100, 255, 0.5)";
-    context.strokeStyle = '#00FF00';
+      const canvas = canvasRef.current
+      const context = canvas.getContext('2d')
+      context.fillStyle = "rgba(0, 100, 255, 0.5)";
+      context.strokeStyle = '#00FF00';
 
-    context.beginPath();
-    context.moveTo(prevPoint.x, prevPoint.y);
-    context.lineTo(firstPoint.x, firstPoint.y);
-    context.lineWidth = 4;
-    context.stroke();
+      context.beginPath();
+      context.moveTo(prevPoint.x, prevPoint.y);
+      context.lineTo(firstPoint.x, firstPoint.y);
+      context.lineWidth = 4;
+      context.stroke();
 
-    context.beginPath();
-    context.moveTo(firstPoint.x, firstPoint.y);
-    for (let i = 1; i < points.length; i++) {
-      var pPoint = absolutePoints[i - 1];
-      context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+      context.beginPath();
+      context.moveTo(firstPoint.x, firstPoint.y);
+      for (let i = 1; i < points.length; i++) {
+        var pPoint = absolutePoints[i - 1];
+        context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+      }
+      context.moveTo(prevPoint.x, prevPoint.y)
+      context.lineTo(firstPoint.x, firstPoint.y);
+      context.closePath();
+      context.fill();
     }
-    context.moveTo(prevPoint.x, prevPoint.y)
-    context.lineTo(firstPoint.x, firstPoint.y);
-    context.closePath();
-    context.fill();
   }
 
+  //Aspect ratio
   function handleCheck() {
-    setCheckedState(!checkedState)
+    setCheckedState({
+      aspect: !checkedState.aspect,
+      mirror: checkedState.mirror
+    })
   }
 
-  var midPoint = { x: -1, y: -1 }
+  //Mirror
+  function handleCheck2() {
+    setCheckedState({
+      aspect: checkedState.aspect,
+      mirror: !checkedState.mirror
+    })
+  }
 
   function enableMidpoint(e) {
     isMouseDown = true
@@ -350,7 +539,7 @@ function App() {
 
   function drawMidpoint(e) {
     if (isMouseDown) {
-      console.log("Drawing midpoint to (" + e.clientX + ", " + e.clientY + ")");
+      //console.log("Drawing midpoint to (" + e.clientX + ", " + e.clientY + ")");
       xs = { min: boundaryState.x.min, max: boundaryState.x.max }
       ys = { min: boundaryState.y.min, max: boundaryState.y.max }
 
@@ -361,7 +550,7 @@ function App() {
       const imageEndX = imageBeginX + mainImageRef2.current.getBoundingClientRect().width;
       const imageEndY = imageBeginY + mainImageRef2.current.getBoundingClientRect().height;
 
-      if (e.clientX > (xs.max * (imageEndX - imageBeginX) + imageBeginX)) 
+      if (e.clientX > (xs.max * (imageEndX - imageBeginX) + imageBeginX))
         e.clientX = (xs.max * (imageEndX - imageBeginX) + imageBeginX);
       else if (e.clientX < (xs.min * (imageEndX - imageBeginX) + imageBeginX))
         e.clientX = (xs.min * (imageEndX - imageBeginX) + imageBeginX);
@@ -370,11 +559,11 @@ function App() {
       else if (e.clientY < (ys.min * (imageEndY - imageBeginY) + imageBeginY))
         e.clientY = (ys.min * (imageEndY - imageBeginY) + imageBeginY)
 
-      console.log("X Bounds: " + xs.min + " to " + xs.max)
+      /*console.log("X Bounds: " + xs.min + " to " + xs.max)
       console.log("Y Bounds: " + ys.min + " to " + ys.max)
 
       console.log("Absolute X Bounds: " + (xs.min * (imageEndX - imageBeginX) + imageBeginX) + " to " + (xs.max * (imageEndX - imageBeginX) + imageBeginX))
-      console.log("Absolute Y Bounds: " + (ys.min * (imageEndY - imageBeginY) + imageBeginY) + " to " + (ys.max * (imageEndY - imageBeginY) + imageBeginY))
+      console.log("Absolute Y Bounds: " + (ys.min * (imageEndY - imageBeginY) + imageBeginY) + " to " + (ys.max * (imageEndY - imageBeginY) + imageBeginY))*/
 
       if (true) {
         const canvas = canvasRef3.current
@@ -396,20 +585,34 @@ function App() {
           x: x / (imageEndX - imageBeginX),
           y: y / (imageEndY - imageBeginY)
         }
+
+        console.log(midPoint.x.toString() + ", " + midPoint.y.toString())
+        console.log("Relative: " + makeInputJson().midPointX + ", " + makeInputJson().midPointY)
       }
     }
   }
 
   function makeInputJson() {
+    let inputPoints = "";
+    points.forEach((point) => {
+      inputPoints += "(" + point.x + "," + point.y + ")"
+    })
+
+    //turn absolute midpoint into relative midpoint
+    var relativeMidpoint = {
+      x: (midPoint.x - boundaryState.x.min) / (boundaryState.x.max - boundaryState.x.min),
+      y: (midPoint.y - boundaryState.y.min) / (boundaryState.y.max - boundaryState.y.min)
+    }
 
     const json = {
-      
+
       "smooth": "" + smoothSlider.current.getValue(),
       "border": "" + borderSlider.current.getValue(),
-      "midPointX": "" + midPoint.x,
-      "midPointY": "" + midPoint.y,
-      "points": "" + points.toString(),
-      "aspectRatio": "" + checkedState.toString(),
+      "midPointX": "" + relativeMidpoint.x,
+      "midPointY": "" + relativeMidpoint.y,
+      "points": "" + inputPoints,
+      "aspectRatio": "" + checkedState.aspect.toString(),
+      "mirror": "" + checkedState.mirror.toString(),
       "image": state.image
     }
 
@@ -426,7 +629,7 @@ function App() {
 
 
         {(state.screen == 0 || state.screen == null) &&
-          <div className={state.fadeOut ? "Fade-out disabled" : ""}>
+          <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
             Welcome to the Amongifier!<br />
             To get started, upload an image containing a face you'd like to amongify.<br />
             <input type="file" className="Image-upload" accept=".png,.jpg,.jpeg" onChange={handleFileInput} /><br />
@@ -445,8 +648,8 @@ function App() {
               </div>
             </div>
             <p className="Hint-text">(Note: Only transparent and white backgrounds are automatically ignored by the program.</p>
-            <p className="Hint-text">If your has a different colored background, you'll have to cut it out here.)</p>
-            <button className={"Proceed-button"} onClick={moveOnTo3}>Proceed to Step 3 &gt;&gt;&gt;</button>
+            <p className="Hint-text">If your image has a different colored background, you'll have to cut it out here.)</p>
+            <button className={"Proceed-button"} onClick={moveBackTo1}>&lt;&lt;&lt; Back to Step 1</button><button className={"Proceed-button"} onClick={moveOnTo3}>Proceed to Step 3 &gt;&gt;&gt;</button>
           </div>
         }
 
@@ -458,9 +661,13 @@ function App() {
             Border Blend Level<br />
             <p className="Hint-text No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>(Higher is better but takes longer)</p>
             <Slider ref={borderSlider} min={1} max={15} value={8} />
-            <div title="If checked, the program will stretch/squeeze the image to fit an aspect ratio that is likely to give good results.">
+            <div>
               Force good aspect ratio:
-              <input type="checkbox" checked={checkedState} onChange={handleCheck} className="Check-box" />
+              <input title="If checked, the program will stretch/squeeze the image to fit an aspect ratio that is likely to give good results."
+                type="checkbox" checked={checkedState.aspect} onChange={handleCheck} className="Check-box" style={{ marginRight: 60 }} />
+              Mirror image horizontally:
+              <input title="If checked, the program will horizontally mirror the face before operating on it."
+                type="checkbox" checked={checkedState.mirror} onChange={handleCheck2} className="Check-box" />
             </div>
             <p className="No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>Click to set midpoint</p>
             <p className="Hint-text No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>(Click on the middle of the face)</p>
@@ -479,6 +686,16 @@ function App() {
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
             <p>{postState.text}</p>
             <LoadingSpin primaryColor='#005566' />
+          </div>
+        }
+
+        {state.screen == 4 &&
+          <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
+            <p style={{ marginBottom: 0 }}>{"Here's your output!"}</p>
+            <img draggable="false" className={state.finalImage.width > state.finalImage.height ? "Main-image-wide" : "Main-image"} src={state.finalImage}></img><br />
+            <button className={"Proceed-button"} onClick={saveFile}>Download</button><br />
+            <button className={"Proceed-button"} onClick={copyImage} style={{ marginTop: 20 }}>{copiedState.toString()}</button><br />
+            <button className={"Proceed-button"} onClick={moveBackToHome} style={{ paddingTop: 0, marginTop: 20 }}>&lt;&lt;&lt; Back Home</button>
           </div>
         }
       </header>

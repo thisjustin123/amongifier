@@ -47,10 +47,12 @@
   font-size: 24px;
   margin-left:12px;
   margin-right:12px;
+  cursor: pointer;
 }
 
 .hidden {
   opacity: 0;
+  pointer-events: none;
 }
 
 .Fade-out {

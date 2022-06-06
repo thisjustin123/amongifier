@@ -16,6 +16,7 @@ import javax.imageio.ImageIO;
 import javax.xml.bind.DatatypeConverter;
 
 import com.thisjustin.amongifier.Amongifier;
+import com.thisjustin.amongifier.Helper;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -65,23 +66,33 @@ public class AmongifierController {
         double midPointY = Double.parseDouble(json.get("midPointY").toString());
         String points = json.get("points").toString();
         boolean forceAspectRatio = json.get("aspectRatio").toString().contains("true");
+        boolean mirror = json.get("mirror").toString().contains("true");
 
-        //System.out.println("Border points: " + points);
-        System.out.println(1);
+        System.out.println("Midpoint: "+midPointX+","+midPointY);
 
         String imagePortion = base64Image.substring(base64Image.indexOf(",") + 1);
         byte[] imageBytes = DatatypeConverter.parseBase64Binary(imagePortion);
-        Amongifier a = new Amongifier();
+        Amongifier a = new Amongifier(smoothing, borderSmoothing, forceAspectRatio, midPointX, midPointY);
+        //Amongifier a = new Amongifier();
         String key = generateKey();
 
-        System.out.println(1);
+        System.out.println("Starting...");
 
         AmongifierThread thread = new AmongifierThread() {
             public void run() {
                 try {
                     BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageBytes));
+                    Point[] borderPoints = Helper.parsePoints(points, img.getWidth(), img.getHeight());
+                    System.out.println("Cutting out face...");
+                    img = a.cutOutFace(img, borderPoints);
+                    System.out.println("Face cut out successfully.");
 
+                    System.out.println("Formatting Image...");
                     img = a.format(img);
+                    if (mirror) {
+                        img = Helper.horizontalMirror(img);
+                    }
+                    System.out.println("Image formatted successfully.");
                     BufferedImage amongified = a.amongify(img);
 
                     ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -91,6 +102,12 @@ public class AmongifierController {
                     this.complete = true;
                     this.base64Image = s;
                 } catch (IOException e) {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+                    this.failed = true;
+                    this.errorMessage = sw.toString();
+                } catch (Exception e) {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
                     e.printStackTrace(pw);
@@ -113,7 +130,18 @@ public class AmongifierController {
      *         "Failed request... Something went wrong!"
      */
     @PostMapping("/amongifier/request")
-    public String requestResponse(@RequestBody String key) {
+    public String requestResponse(@RequestBody String keyJSON) {
+        JSONParser parser = new JSONParser();
+        JSONObject json = new JSONObject();
+        try {
+            json = (JSONObject) parser.parse(keyJSON);
+        } catch (ParseException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        String key = json.get("key").toString();
+
         AmongifierThread a = keyMap.get(key);
         if (a != null && a.complete) {
             String image = a.base64Image;
@@ -129,7 +157,7 @@ public class AmongifierController {
     /**
      * Returns a unique string key (10-digit number).
      * 
-     * @return
+     * @return The damn key
      */
     private String generateKey() {
         String s = "";
