@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/amongifier/static/css/main.55246b26.css",
+    "main.js": "/amongifier/static/js/main.58c5be54.js",
+    "static/js/787.c4e7f8f9.chunk.js": "/amongifier/static/js/787.c4e7f8f9.chunk.js",
+    "index.html": "/amongifier/index.html",
+    "main.55246b26.css.map": "/amongifier/static/css/main.55246b26.css.map",
+    "main.58c5be54.js.map": "/amongifier/static/js/main.58c5be54.js.map",
+    "787.c4e7f8f9.chunk.js.map": "/amongifier/static/js/787.c4e7f8f9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.55246b26.css",
+    "static/js/main.58c5be54.js"
+  ]
+}
