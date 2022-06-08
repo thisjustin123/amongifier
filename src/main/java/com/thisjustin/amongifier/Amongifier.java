@@ -15,6 +15,20 @@ import java.util.*;
 public class Amongifier {
 
     /**
+     * 0 = Starting
+     * 1 = Cutting out face
+     * 2 = Formatting image
+     * 3 = Pasting image
+     * 4 = Extrapolation
+     * 5 = Noise 1
+     * 6 = Smooth
+     * 7 = Border Blend
+     * 8 = Noise 2
+     */
+    private int stage = 0;
+    private double progress = 0;
+
+    /**
      * @deprecated
      */
     private LinkedList<Point> remainingGreenPixels = new LinkedList<>();
@@ -42,8 +56,8 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/faceCutout_tc1.png";
-    private static final String OUTPUTFILE_STRING = "data/faceCutout_output1.png";
+    private static final String INPUTFILE_STRING = "data/declan_test1.png";
+    private static final String OUTPUTFILE_STRING = "data/declan_bordertest.png";
 
     private static boolean FORCE_ASPECT_RATIO = false;
 
@@ -67,20 +81,37 @@ public class Amongifier {
         Amongifier a = new Amongifier();
         try {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
-            /*
-             * image = a.format(image);
-             * a.amongify(image);
-             * File file = new File(OUTPUTFILE_STRING);
-             * ImageIO.write(a.pastedTemplate, "png", file);
-             */
 
-            Point[] facePoints = { new Point(50, 50), new Point(78, 450), new Point(506, 175) };
-            BufferedImage o = a.cutOutFace(image, facePoints);
+            image = a.format(image);
+
+            File file1 = new File("data/declan_formattest.png");
+            ImageIO.write(image, "png", file1);
+
+            a.amongify(image);
             File file = new File(OUTPUTFILE_STRING);
-            ImageIO.write(o, "png", file);
+            ImageIO.write(a.pastedTemplate, "png", file);
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+
         }
+    }
+
+    /**
+     * Can be called at any time to get the status of the current Amongifier
+     * operations. Outputs are formatted as follows: [Stage]|[Progress Percent]
+     */
+    public String getStatus() {
+        return "" + stage + "|" + (int) (Math.round(progress * 100));
+    }
+
+    /**
+     * Advances the publicly visible stage number for this amongifier and sets its
+     * progress to 0.
+     */
+    private void nextStage() {
+        stage++;
+        progress = 0;
     }
 
     /**
@@ -91,6 +122,7 @@ public class Amongifier {
      * @return wholeImage with its face cut out.
      */
     public BufferedImage cutOutFace(BufferedImage wholeImage, Point[] facePoints) {
+        nextStage();
         if (facePoints.length == 0) {
             return wholeImage;
         }
@@ -114,6 +146,7 @@ public class Amongifier {
         whiteG.drawLine(facePoints[facePoints.length - 1].x, facePoints[facePoints.length - 1].y, facePoints[0].x,
                 facePoints[0].y);
         // Postcondition: whiteImage now contains the face bordered in black.
+        progress = .33;
 
         // Fill the non-face region of whiteImage with some dumb color, let's say BLUE.
         whiteG.setColor(Color.BLUE);
@@ -151,6 +184,8 @@ public class Amongifier {
         // Postcondition: outsideFacePoints now contains all points that are outside the
         // face. and outermostBorderPoints contains all the... outermost face border
         // points.
+        progress = .67;
+
         for (Point p : outsideFacePoints) {
             whiteG.fillRect(p.x, p.y, 0, 0);
         }
@@ -198,6 +233,7 @@ public class Amongifier {
             }
             translatedI++;
         }
+        progress = 1;
         return finalImage;
     }
 
@@ -211,6 +247,7 @@ public class Amongifier {
      * @return
      */
     public BufferedImage format(BufferedImage faceImage) {
+        nextStage();
         faceImage = Transparentify.transparentify(faceImage);
         int desiredWidth = 570, desiredHeight = 766;
 
@@ -256,11 +293,12 @@ public class Amongifier {
                 faceImage.getHeight(), null);
 
         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC));
-        // g.setColor(new Color(0, 0, 0, 255));
+
         for (int i = 0; i < newImage.getWidth(); i++) {
             for (int j = 0; j < newImage.getHeight(); j++) {
                 Color faceColor = getColorAt(newImage, i, j, true);
                 gFinal.setColor(faceColor);
+                progress = (newImage.getHeight() * i + j) / (newImage.getWidth() * newImage.getHeight());
 
                 if (faceColor.getAlpha() == 255) {
                     gFinal.drawRect(i, j, 0, 0);
@@ -275,13 +313,13 @@ public class Amongifier {
 
     /**
      * Takes in a properly formatted image for a face, then returns an amongified
-     * version of
-     * it.
+     * version of it.
      * 
      * @param faceImage The image to amongify.
      * @throws Exception
      */
     public BufferedImage amongify(BufferedImage faceImage) throws Exception {
+        nextStage();
         BufferedImage template = ImageIO.read(new File("data/Among_Template_BackpackTransparent.png"));
         double ratioX = .58;
         double ratioY = .38;
@@ -314,6 +352,8 @@ public class Amongifier {
         System.out.println("Num non-transparent pixels: " + num + ", " + num3 + " (Numbers should be the same!)");
         assert num == num3;
 
+        progress = .33;
+
         for (int i = 0; i < template.getWidth(); i++) {
             for (int j = 0; j < template.getHeight(); j++) {
                 if (getColorAt(template, i, j, false).getGreen() == 255) {
@@ -329,6 +369,8 @@ public class Amongifier {
                 }
             }
         }
+
+        progress = .67;
 
         num = 0;
         int faceX = 0, faceY = 0, num2 = 0;
@@ -355,6 +397,7 @@ public class Amongifier {
             }
             faceX++;
         }
+        progress = 1;
         System.out.println("Pasted # pixels: " + num);
         System.out.println("Non-pasted # pixels: " + num2);
 
@@ -366,20 +409,26 @@ public class Amongifier {
         }
 
         pastedTemplate = template;
+
         System.out.println("Pasting Complete.");
 
+        nextStage();
         extrapolate();
 
         for (int i = 0; i < 1; i++) {
+            nextStage();
             addNoise(.02);
-            smooth(0);
+            nextStage();
+            smooth(.1);
+            nextStage();
             blendBorder(borderBlendRadius);
+            nextStage();
             addNoise(.02);
         }
 
         g2d.dispose();
 
-        System.out.println("Done! Outputting file " + OUTPUTFILE_STRING);
+        System.out.println("Done! Sending file back.");
 
         return template;
     }
@@ -407,6 +456,7 @@ public class Amongifier {
     private void extrapolate() throws Exception {
         Graphics2D g2d = pastedTemplate.createGraphics();
         int lastPrint = greenSet.size();
+        int initialSize = greenSet.size();
         int badLoops = 0;
 
         System.out.println("Starting body extrapolation with " + greenSet.size() + " total pixels");
@@ -442,6 +492,7 @@ public class Amongifier {
                 // nextPoint.toString());
 
                 badLoops = 0;
+                progress = (1 - (((double) greenSet.size()) / initialSize)) / 2;
 
                 if (lastPrint - greenSet.size() >= 100000) {
                     System.out.println(greenSet.size() + " pixels remaining.");
@@ -466,7 +517,8 @@ public class Amongifier {
 
                 if (badLoops > 10) {
                     System.out.println("Stuck with " + greenSet.size() + " pixels remaining.");
-                    throw new Exception("The amongifier got stuck. Something may have caused the image to paste poorly or incorrectly.");
+                    throw new Exception(
+                            "The amongifier got stuck. Something may have caused the image to paste poorly or incorrectly.");
                 }
             }
         }
@@ -495,7 +547,7 @@ public class Amongifier {
             }
         }
         badLoops = 0;
-
+        initialSize = blueSet.size();
         lastPrint = blueSet.size();
 
         System.out.println("Starting backpack extrapolation with " + blueSet.size() + " total pixels...");
@@ -525,6 +577,7 @@ public class Amongifier {
 
             if (nextPoint != null) {
                 badLoops = 0;
+                progress = ((1 - (((double) blueSet.size()) / initialSize)) / 2) + .5;
 
                 if (lastPrint - blueSet.size() >= 25000) {
                     System.out.println(blueSet.size() + " pixels remaining.");
@@ -549,6 +602,8 @@ public class Amongifier {
 
                 if (badLoops > 10) {
                     System.out.println("Stuck with " + greenSet.size() + " pixels remaining.");
+                    throw new Exception(
+                            "The amongifier got stuck. Something may have caused the image to paste poorly or incorrectly.");
                 }
             }
         }
@@ -576,27 +631,31 @@ public class Amongifier {
         // Add face boundary pixels to smooth set. A face boundary pixel is any pixel
         // that is within [some amount] of pixels from a pixel that is immediately
         // adjacent to a green pixel, including those pixels themselves.
-        for (Point p : originalGreenSet) {
-            Point[] pointsOfInterest = {
-                    new Point(p.x - 1, p.y),
-                    new Point(p.x + 1, p.y),
-                    new Point(p.x, p.y - 1),
-                    new Point(p.x, p.y + 1)
-            };
-
-            for (Point potentialPoint : pointsOfInterest) {
-                if (originalFaceSet.contains(potentialPoint)) {
-                    // Add corresponding points to smoothSet.
-                    ArrayList<Point> pointsToAdd = new ArrayList<>();
-                    Collections.addAll(pointsToAdd, Helper.pointsRectangle(potentialPoint, 8, 8));
-                    pointsToAdd.removeIf((aPoint) -> !faceSet.contains(aPoint));
-                    smoothSet.addAll(pointsToAdd);
-                    smoothSet.add(potentialPoint);
-                }
-            }
-        }
+        /*
+         * for (Point p : originalGreenSet) {
+         * Point[] pointsOfInterest = {
+         * new Point(p.x - 1, p.y),
+         * new Point(p.x + 1, p.y),
+         * new Point(p.x, p.y - 1),
+         * new Point(p.x, p.y + 1)
+         * };
+         * 
+         * for (Point potentialPoint : pointsOfInterest) {
+         * if (originalFaceSet.contains(potentialPoint)) {
+         * // Add corresponding points to smoothSet.
+         * ArrayList<Point> pointsToAdd = new ArrayList<>();
+         * Collections.addAll(pointsToAdd, Helper.pointsRectangle(potentialPoint, 8,
+         * 8));
+         * pointsToAdd.removeIf((aPoint) -> !faceSet.contains(aPoint));
+         * smoothSet.addAll(pointsToAdd);
+         * smoothSet.add(potentialPoint);
+         * }
+         * }
+         * }
+         */
 
         System.out.println("Pixels to smooth: " + smoothSet.size());
+        int count = 0;
         for (Point p : smoothSet) {
             Color avg = averageColor(p);
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
@@ -604,11 +663,17 @@ public class Amongifier {
             Color newColor = Helper.colorInterp(avg, oldColor, conservation);
 
             colorMap.put(p, newColor);
+            count++;
+            progress = (count / 2.0) / smoothSet.size();
         }
-
+        count = 0;
+        int size = colorMap.keySet().size();
         for (Point p : colorMap.keySet()) {
             g2d.setColor(colorMap.get(p));
             g2d.drawRect(p.x, p.y, 0, 0);
+
+            count++;
+            progress = (count / 2.0) / size + .5;
         }
         g2d.dispose();
     }
@@ -628,6 +693,8 @@ public class Amongifier {
         HashMap<Point, Color> colorMap = new HashMap<>();
 
         System.out.println("Pixels to smooth: " + smoothMap.keySet().size());
+        int count = 0;
+        int size = smoothMap.keySet().size();
         for (Point p : smoothMap.keySet()) {
             double conservation = Helper.clamp(smoothMap.get(p), 0, 1);
             Color avg = averageColor(p);
@@ -636,11 +703,17 @@ public class Amongifier {
             Color newColor = Helper.colorInterp(avg, oldColor, conservation);
 
             colorMap.put(p, newColor);
+            count++;
+            progress = (count / 2.0) / size;
         }
 
+        count = 0;
+        size = colorMap.keySet().size();
         for (Point p : colorMap.keySet()) {
             g2d.setColor(colorMap.get(p));
             g2d.drawRect(p.x, p.y, 0, 0);
+
+            progress = (count / 2.0) / size + .5;
         }
         g2d.dispose();
     }
@@ -704,10 +777,12 @@ public class Amongifier {
                         y / (pastedTemplate.getHeight() / 400), 0.0)) + 1) / 2;
             }
         }
+        progress = .5;
 
         HashSet<Point> noiseSet = new HashSet<Point>();
         noiseSet.addAll(extrapolatedPixels);
 
+        int count = 0;
         for (Point p : noiseSet) {
 
             Color oldColor = getColorAt(pastedTemplate, p.x, p.y, false);
@@ -717,6 +792,8 @@ public class Amongifier {
             Color weightedColor = Helper.colorInterp(oldColor, noiseColor, degree);
             g2d.setColor(weightedColor);
             g2d.drawRect(p.x, p.y, 0, 0);
+            count++;
+            progress = .5 + ((double) count) / noiseSet.size() / 2.0;
         }
 
         g2d.dispose();

@@ -55,7 +55,6 @@ public class AmongifierController {
         try {
             json = (JSONObject) parser.parse(responseJSON);
         } catch (ParseException e1) {
-            // TODO Auto-generated catch block
             e1.printStackTrace();
         }
 
@@ -68,12 +67,11 @@ public class AmongifierController {
         boolean forceAspectRatio = json.get("aspectRatio").toString().contains("true");
         boolean mirror = json.get("mirror").toString().contains("true");
 
-        System.out.println("Midpoint: "+midPointX+","+midPointY);
+        System.out.println("Mid point: (" + midPointX + "," + midPointY + ")");
 
         String imagePortion = base64Image.substring(base64Image.indexOf(",") + 1);
         byte[] imageBytes = DatatypeConverter.parseBase64Binary(imagePortion);
         Amongifier a = new Amongifier(smoothing, borderSmoothing, forceAspectRatio, midPointX, midPointY);
-        //Amongifier a = new Amongifier();
         String key = generateKey();
 
         System.out.println("Starting...");
@@ -114,8 +112,19 @@ public class AmongifierController {
                     this.failed = true;
                     this.errorMessage = sw.toString();
                 }
+                try {
+                    long duration = 10000;
+                    Thread.sleep(duration);
+                    if (keys.contains(key)) {
+                        System.out.println("Key " + key + " idle for " + (duration / 1000) + " seconds. Discarding thread.");
+                        clearKey(key);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         };
+        thread.a = a;
         thread.start();
         keyMap.put(key, thread);
         return key;
@@ -136,8 +145,8 @@ public class AmongifierController {
         try {
             json = (JSONObject) parser.parse(keyJSON);
         } catch (ParseException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
+            System.out.println("Illegal request detected: " + keyJSON);
+            return "Illegal request.";
         }
 
         String key = json.get("key").toString();
@@ -147,10 +156,11 @@ public class AmongifierController {
             String image = a.base64Image;
             clearKey(key);
             return image;
-        } else if (a == null) {
-            return "Failed request... Something went wrong!";
+        } else if (a == null || a.failed) {
+            clearKey(key);
+            return "Failed|" + a.errorMessage;
         } else {
-            return "Incomplete, check back later.";
+            return "Incomplete|" + a.a.getStatus();
         }
     }
 
@@ -183,6 +193,8 @@ public class AmongifierController {
 
         public boolean failed = false;
         public String errorMessage = "";
+
+        public Amongifier a;
 
         public int getPercentDone() {
             return 50;

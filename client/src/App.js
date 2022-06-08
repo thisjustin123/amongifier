@@ -14,11 +14,14 @@ import { saveAs } from 'file-saver'
 import Rotator from 'exif-auto-rotate';
 import { copyImageToClipboard } from 'copy-image-clipboard'
 
-const originLink = "http://localhost:3000"
+const originLink = "https://thisjustin123.github.io/amongifier/"
 var points = [];
 var absolutePoints = [];
 var midPoint = { x: -1, y: -1 }
+var firstPoint = { x: -1, y: -1 }
+var prevPoint = { x: -1, y: -1 }
 var pureName = ""
+const stages = ["Starting up...", "Cutting out the face...", "Formatting your image...", "Pasting your image...", "Extrapolating the crewmate body...", "Adding noise...", "Smoothing out...", "Blending the border...", "Adding noise..."];
 
 function App() {
   var [state, setState] = useState(0);
@@ -112,6 +115,7 @@ function App() {
                 isValid: uri != null,
                 screen: 0
               });
+              console.log("image rotated")
             }
           );
         }
@@ -223,6 +227,55 @@ function App() {
     }
   }
 
+  const moveBackTo2 = () => {
+    if (!state.fadeOut) {
+      setState({
+        isValid: false,
+        fadeOut: true,
+        fadeIn: false,
+        screen: 2,
+        image: state.image
+      })
+
+      setTimeout(() => {
+        setState({
+          isValid: false,
+          fadeOut: false,
+          fadeIn: true,
+          screen: 1,
+          image: state.image
+        })
+
+        setTimeout(() => {
+          setCanvasState({
+            width: outsideWrapperRef.current.getBoundingClientRect().width,
+            height: outsideWrapperRef.current.getBoundingClientRect().height
+          })
+          console.log(outsideWrapperRef.current.getBoundingClientRect().width)
+
+          const canvas = canvasRef.current
+          const context = canvas.getContext('2d')
+
+          context.fillStyle = "rgba(0, 100, 255, 0.5)";
+          context.strokeStyle = '#00FF00';
+          context.lineWidth = 4;
+
+          context.beginPath();
+          context.moveTo(firstPoint.x, firstPoint.y);
+          for (let i = 1; i < points.length; i++) {
+            var pPoint = absolutePoints[i - 1];
+            context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+          }
+          context.moveTo(prevPoint.x, prevPoint.y)
+          context.lineTo(firstPoint.x, firstPoint.y);
+          context.stroke();
+          context.closePath();
+          context.fill();
+        }, 100)
+      }, 800);
+    }
+  }
+
   const moveOnTo3 = () => {
     if (points.length > 0) {
       xs = { min: points[0].x, max: points[0].x }
@@ -327,6 +380,15 @@ function App() {
             console.log("Circular message: " + circleMessage.data);
 
             if (circleMessage.data.toString().includes("Incomplete")) {
+              const messageParts = circleMessage.data.toString().split("|")
+              const progress = parseInt(messageParts[2])
+              const stage = parseInt(messageParts[1])
+              setPostState({
+                text: stages[stage],
+                progress: progress,
+                stage: stage
+              })
+
               setTimeout(() => {
                 //Circular call to circle Worker
                 myCircularWorker.postMessage({
@@ -340,7 +402,11 @@ function App() {
                   body: JSON.stringify({ "key": key.toString() }),
                   mode: 'cors'
                 })
-              }, 1000)
+              }, 500)
+            }
+            else if (circleMessage.data.toString().includes("Failed")) {
+              console.log("Image failed. Showing error")
+              moveOnTo5(null)
             }
             else {
               console.log("Image found! Base64: " + circleMessage.data)
@@ -398,10 +464,6 @@ function App() {
       })
     }, 800)
   }
-
-
-  var firstPoint = { x: -1, y: -1 }
-  var prevPoint = { x: -1, y: -1 }
 
   function mouseDown(e) {
     const imageBeginX = mainImageRef.current.getBoundingClientRect().x
@@ -623,11 +685,9 @@ function App() {
   const borderSlider = useRef(null);
 
   return (
-    <div className="App">
-      <header className={"App-header"}>
+    <div>
 
-
-
+      <header className="App-header">
         {(state.screen == 0 || state.screen == null) &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
             Welcome to the Amongifier!<br />
@@ -647,8 +707,8 @@ function App() {
                 <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef} className="coveringCanvas" onMouseDown={mouseDown} onMouseUp={mouseUp} onMouseMove={mouseMove}></canvas>
               </div>
             </div>
-            <p className="Hint-text">(Note: Only transparent and white backgrounds are automatically ignored by the program.</p>
-            <p className="Hint-text">If your image has a different colored background, you'll have to cut it out here.)</p>
+            <p className="Hint-text" style={{ marginTop: 0, marginBottom: 0 }}>(Note: Only transparent and white backgrounds are automatically ignored by the program.</p>
+            <p className="Hint-text" >If your image has a different colored background, you'll have to cut it out here.)</p>
             <button className={"Proceed-button"} onClick={moveBackTo1}>&lt;&lt;&lt; Back to Step 1</button><button className={"Proceed-button"} onClick={moveOnTo3}>Proceed to Step 3 &gt;&gt;&gt;</button>
           </div>
         }
@@ -678,18 +738,20 @@ function App() {
                 <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef3} onMouseDown={enableMidpoint} onMouseMove={drawMidpoint} onClick={disableMidpoint} className="coveringCanvas"></canvas>
               </div>
             </div>
-            <button className={"Proceed-button"} onClick={moveOnTo4}>Send it in! &gt;&gt;&gt;</button>
+            <button className={"Proceed-button"} onClick={moveBackTo2}>&lt;&lt;&lt; Back to Step 2</button><button className={"Proceed-button"} onClick={moveOnTo4}>Send it in! &gt;&gt;&gt;</button>
           </div>
         }
 
         {state.screen == 3 &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
-            <p>{postState.text}</p>
+            <p style={{ marginBottom: 0, paddingBottom: 0 }}>{postState.text}</p>
+            <p style={{ fontSize: 15, marginTop: 0, paddingTop: 0, marginBottom: 40 }}>{"Stage " + postState.stage + " of 8"}</p>
             <LoadingSpin primaryColor='#005566' />
+            <p>{postState.progress + "%"}</p>
           </div>
         }
 
-        {state.screen == 4 &&
+        {(state.screen == 4 && state.finalImage != null) &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
             <p style={{ marginBottom: 0 }}>{"Here's your output!"}</p>
             <img draggable="false" className={state.finalImage.width > state.finalImage.height ? "Main-image-wide" : "Main-image"} src={state.finalImage}></img><br />
@@ -698,7 +760,18 @@ function App() {
             <button className={"Proceed-button"} onClick={moveBackToHome} style={{ paddingTop: 0, marginTop: 20 }}>&lt;&lt;&lt; Back Home</button>
           </div>
         }
+        {(state.screen == 4 && state.finalImage == null) &&
+          <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
+            <p style={{ marginBottom: 0 }}>{"An error occurred with the Amongifier."}</p>
+            <p className="Hint-text" style={{}}>{"There was a problem pasting your image."}</p>
+            <p className="Hint-text" style={{ marginTop: 0 }}>{"Perhaps there was something wrong with the transparency or midpoint of your image?"}</p>
+            <button className={"Proceed-button"} onClick={moveBackToHome} style={{ paddingTop: 0, marginTop: 20 }}>&lt;&lt;&lt; Back Home</button>
+          </div>
+        }
       </header>
+      <footer className="App-footer">
+        <p style={{ fontSize: 12, marginLeft: 10, paddingBottom: 0 }}><a target="_blank" href="https://github.com/thisjustin123/amongifier/issues">Report an Issue</a></p>
+      </footer>
     </div>
   );
 }

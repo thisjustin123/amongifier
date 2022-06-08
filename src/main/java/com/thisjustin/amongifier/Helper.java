@@ -101,7 +101,14 @@ public class Helper {
                 hsv1[2] * (1 - fracFloat) + hsv2[2] * fracFloat
         };
 
-        return Color.getHSBColor(newHSV[0], newHSV[1], newHSV[2]);
+        Color interpRGB = new Color(
+                (int) Math.round(c1.getRed() * (1 - fraction) + c2.getRed() * fraction),
+                (int) Math.round(c1.getGreen() * (1 - fraction) + c2.getGreen() * fraction),
+                (int) Math.round(c1.getBlue() * (1 - fraction) + c2.getBlue() * fraction));
+        
+        Color interpHSV = Color.getHSBColor(newHSV[0], newHSV[1], newHSV[2]);
+
+        return interpRGB;
     }
 
     /**
@@ -130,7 +137,7 @@ public class Helper {
             points[i] = new Point((int) Math.round(Double.parseDouble(x) * width),
                     (int) Math.round(Double.parseDouble(y) * height));
 
-            pointString = pointString.substring(pointString.indexOf(")")+1);
+            pointString = pointString.substring(pointString.indexOf(")") + 1);
             i++;
         }
         return points;
@@ -140,12 +147,12 @@ public class Helper {
         AffineTransform tx = AffineTransform.getScaleInstance(-1, 1);
         tx.translate(-i.getWidth(null), 0);
         AffineTransformOp op = new AffineTransformOp(tx,
-            AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+                AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
         return op.filter(i, null);
     }
 
     public static void main(String[] args) {
-        //Test cases
+        // Test cases
         try {
             BufferedImage image = ImageIO.read(new File("data/faceCutout_output1.png"));
 
