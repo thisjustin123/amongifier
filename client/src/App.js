@@ -770,7 +770,11 @@ function App() {
         }
       </header>
       <footer className="App-footer">
-        <p style={{ fontSize: 12, marginLeft: 10, paddingBottom: 0 }}><a target="_blank" href="https://github.com/thisjustin123/amongifier/issues">Report an Issue</a></p>
+        <p style={{ fontSize: 12, marginLeft: 10, paddingBottom: 0 }}>
+          <a target="_blank" href="https://github.com/thisjustin123/amongifier/issues">Report an Issue</a>
+          <a target="_blank" style={{ marginLeft:20 }} href="https://github.com/thisjustin123/amongifier">Source Code</a>
+          <a target="_blank" style={{ marginLeft:20 }} href="https://linktr.ee/thisjustin_g">Made by Justin Guo</a>
+        </p>
       </footer>
     </div>
   );
