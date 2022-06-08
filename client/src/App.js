@@ -14,7 +14,7 @@ import { saveAs } from 'file-saver'
 import Rotator from 'exif-auto-rotate';
 import { copyImageToClipboard } from 'copy-image-clipboard'
 
-const originLink = "https://thisjustin123.github.io/amongifier/"
+const originLink = "https://thisjustin123.github.io"
 var points = [];
 var absolutePoints = [];
 var midPoint = { x: -1, y: -1 }
