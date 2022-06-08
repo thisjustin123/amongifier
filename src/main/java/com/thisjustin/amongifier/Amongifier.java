@@ -56,8 +56,8 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/declan_test1.png";
-    private static final String OUTPUTFILE_STRING = "data/declan_bordertest.png";
+    private static final String INPUTFILE_STRING = "data/Chris_FinalTestCase.png";
+    private static final String OUTPUTFILE_STRING = "data/chris_amongified.png";
 
     private static boolean FORCE_ASPECT_RATIO = false;
 
@@ -83,10 +83,6 @@ public class Amongifier {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
 
             image = a.format(image);
-
-            File file1 = new File("data/declan_formattest.png");
-            ImageIO.write(image, "png", file1);
-
             a.amongify(image);
             File file = new File(OUTPUTFILE_STRING);
             ImageIO.write(a.pastedTemplate, "png", file);
