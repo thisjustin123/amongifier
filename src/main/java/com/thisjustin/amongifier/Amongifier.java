@@ -680,7 +680,7 @@ public class Amongifier {
 
             colorMap.put(p, newColor);
             count++;
-            progress = (count) / smoothSet.size();
+            progress = ((double) count) / smoothSet.size();
         }
         count = 0;
         int size = colorMap.keySet().size();
@@ -719,7 +719,7 @@ public class Amongifier {
 
             colorMap.put(p, newColor);
             count++;
-            progress = (count) / size;
+            progress = ((double) count) / size;
         }
 
         count = 0;
