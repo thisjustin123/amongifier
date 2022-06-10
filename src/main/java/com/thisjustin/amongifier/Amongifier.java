@@ -680,7 +680,7 @@ public class Amongifier {
 
             colorMap.put(p, newColor);
             count++;
-            progress = (count / 2.0) / smoothSet.size();
+            progress = (count) / smoothSet.size();
         }
         count = 0;
         int size = colorMap.keySet().size();
@@ -689,7 +689,6 @@ public class Amongifier {
             g2d.drawRect(p.x, p.y, 0, 0);
 
             count++;
-            progress = (count / 2.0) / size + .5;
         }
         g2d.dispose();
     }
@@ -720,7 +719,7 @@ public class Amongifier {
 
             colorMap.put(p, newColor);
             count++;
-            progress = (count / 2.0) / size;
+            progress = (count) / size;
         }
 
         count = 0;
@@ -728,8 +727,6 @@ public class Amongifier {
         for (Point p : colorMap.keySet()) {
             g2d.setColor(colorMap.get(p));
             g2d.drawRect(p.x, p.y, 0, 0);
-
-            progress = (count / 2.0) / size + .5;
         }
         g2d.dispose();
     }
