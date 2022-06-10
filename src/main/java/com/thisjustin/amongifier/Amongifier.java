@@ -56,7 +56,7 @@ public class Amongifier {
     private HashSet<Point> originalGreenSet = new HashSet<>();
     private HashSet<Point> originalFaceSet = new HashSet<>();
 
-    private static final String INPUTFILE_STRING = "data/Chris_FinalTestCase.png";
+    private static final String INPUTFILE_STRING = "data/susmine.jpg";
     private static final String OUTPUTFILE_STRING = "data/chris_amongified.png";
 
     private static boolean FORCE_ASPECT_RATIO = false;
@@ -81,6 +81,16 @@ public class Amongifier {
         Amongifier a = new Amongifier();
         try {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
+            /*Point[] points = {
+                new Point(1355, 822),
+                new Point( 997, 1034),
+                new Point( 1001, 1924),
+                new Point( 1349, 2053),
+                new Point( 1741, 1800),
+                new Point( 1657, 1014),
+            };
+            File file = new File("data/susmine_cutout.png");
+            ImageIO.write(a.cutOutFace(image, points), "png", file);*/
 
             image = a.format(image);
             a.amongify(image);
@@ -122,8 +132,32 @@ public class Amongifier {
         if (facePoints.length == 0) {
             return wholeImage;
         }
-        // An image with the face bordered in black that is purely white otherwise.
-        BufferedImage whiteImage = new BufferedImage(wholeImage.getWidth(), wholeImage.getHeight(),
+
+        Point minXPoint = facePoints[0];
+        Point minYPoint = facePoints[0];
+        Point maxXPoint = facePoints[0];
+        Point maxYPoint = facePoints[0];
+        for (Point p : facePoints) {
+            if (p.x < minXPoint.x)
+                minXPoint = p;
+            if (p.y < minYPoint.y)
+                minYPoint = p;
+            if (p.x > maxXPoint.x)
+                maxXPoint = p;
+            if (p.y > maxYPoint.y)
+                maxYPoint = p;
+        }
+        int faceStartX = minXPoint.x, faceEndX = maxXPoint.x;
+        int faceStartY = minYPoint.y, faceEndY = maxYPoint.y;
+        wholeImage = wholeImage.getSubimage(faceStartX, faceStartY, faceEndX-faceStartX+1, faceEndY-faceStartY+1);
+        for (int i = 0; i < facePoints.length; i++) {
+            Point p = facePoints[i];
+            p.x = p.x - faceStartX;
+            p.y = p.y - faceStartY;
+        }
+
+        // An image with just large enough dimensions to contain the face bordered in black that is purely white otherwise.
+        BufferedImage whiteImage = new BufferedImage(maxXPoint.x-minXPoint.x+1, maxYPoint.y-minYPoint.y+1,
                 BufferedImage.TYPE_INT_RGB);
         Graphics2D whiteG = whiteImage.createGraphics();
 
@@ -190,20 +224,6 @@ public class Amongifier {
         ArrayList<Point> borderPointsList = new ArrayList<>();
         for (Object o : tempArray) {
             borderPointsList.add((Point) o);
-        }
-        Point minXPoint = borderPointsList.get(0);
-        Point minYPoint = borderPointsList.get(0);
-        Point maxXPoint = borderPointsList.get(0);
-        Point maxYPoint = borderPointsList.get(0);
-        for (Point p : borderPointsList) {
-            if (p.x < minXPoint.x)
-                minXPoint = p;
-            if (p.y < minYPoint.y)
-                minYPoint = p;
-            if (p.x > maxXPoint.x)
-                maxXPoint = p;
-            if (p.y > maxYPoint.y)
-                maxYPoint = p;
         }
         int newWidth = maxXPoint.x - minXPoint.x + 1;
         int newHeight = maxYPoint.y - minYPoint.y + 1;
