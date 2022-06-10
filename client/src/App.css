@@ -22,17 +22,21 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
-  text-align: center
+  text-align: center;
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow-x: hidden;
 }
 .App-footer {
-  background-color: #282c34;
-  height:35px;
+  background-color: transparent;
+  height:25px;
   padding: 0;
   margin:0;
   color: white;
   position:fixed;
   left:0px;
   bottom:0px;
+  z-index: 0;
 }
 
 .App-link {
@@ -70,6 +74,10 @@ a:active {
 .Hint-text {
   color: #FFFFFF;
   font-size: 12px;
+  max-width: 95vw;
+  word-wrap: break-word;
+  margin: 0 auto;
+  margin-bottom: 10px;
 }
 
 .Image-upload {
@@ -92,6 +100,20 @@ a:active {
   margin-left:12px;
   margin-right:12px;
   cursor: pointer;
+  max-width: 40vw;
+  z-index: 2;
+}
+
+.Proceed-button:hover {
+  background-color: #171a20;
+  border-style: solid;
+  color: #FFFFFF;
+}
+
+.Proceed-button:active {
+  background-color: #0f1115;
+  border-style: solid;
+  color: #FFFFFF;
 }
 
 .hidden {
@@ -208,20 +230,6 @@ a:active {
   100% {
     opacity: 0;
   }
-}
-
-.Proceed-button:hover {
-  background-color: #171a20;
-  border-style: solid;
-  color: #FFFFFF;
-  font-size: 24px
-}
-
-.Proceed-button:active {
-  background-color: #0f1115;
-  border-style: solid;
-  color: #FFFFFF;
-  font-size: 24px
 }
 
 .Check-box {

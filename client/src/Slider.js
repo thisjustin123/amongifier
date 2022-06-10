@@ -29,7 +29,9 @@ export default class Slider extends React.Component {
     render() {
         return(
             <div>
-                <input type="range" onChange={this.changeSlider.bind(this)} min={this.state.min} max={this.state.max} value={this.state.value} className="slider Horizontal-list-element" id="myRange"></input>
+                <input type="range" onChange={this.changeSlider.bind(this)} min={this.state.min} max={this.state.max} 
+                value={this.state.value} className="slider Horizontal-list-element" id="myRange"></input>
+                
                 <p className="Horizontal-list-element Slider-label">{""+this.state.value}</p>
             </div>
         )
