@@ -355,6 +355,9 @@ function App() {
 
   const moveOnTo4 = () => {
     if (!state.fadeOut) {
+      setPostState(
+        { text: "Communicating with the server...", progress: 0, stage: 0 }
+      )
       setState({
         isValid: false,
         fadeIn: false,
@@ -479,7 +482,7 @@ function App() {
     }
     e.clientX = clamp(e.clientX, imageBeginX, imageEndX)
     e.clientY = clamp(e.clientY, imageBeginY, imageEndY)
-    
+
     if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
       absolutePoints = [];
       points = []
@@ -647,7 +650,7 @@ function App() {
       xs = { min: boundaryState.x.min, max: boundaryState.x.max }
       ys = { min: boundaryState.y.min, max: boundaryState.y.max }
 
-      
+
 
       if (e.clientX > (xs.max * (imageEndX - imageBeginX) + imageBeginX))
         e.clientX = (xs.max * (imageEndX - imageBeginX) + imageBeginX);
@@ -660,7 +663,7 @@ function App() {
 
       /*console.log("X Bounds: " + xs.min + " to " + xs.max)
       console.log("Y Bounds: " + ys.min + " to " + ys.max)
-
+  
       console.log("Absolute X Bounds: " + (xs.min * (imageEndX - imageBeginX) + imageBeginX) + " to " + (xs.max * (imageEndX - imageBeginX) + imageBeginX))
       console.log("Absolute Y Bounds: " + (ys.min * (imageEndY - imageBeginY) + imageBeginY) + " to " + (ys.max * (imageEndY - imageBeginY) + imageBeginY))*/
 
@@ -729,7 +732,7 @@ function App() {
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
             Welcome to the Amongifier!<br />
             To get started, upload an image containing a face you'd like to amongify.<br />
-            <input type="file" className="Image-upload" accept=".png,.jpg,.jpeg" style={{marginBottom:5}} onChange={handleFileInput}/><br />
+            <input type="file" className="Image-upload" accept=".png,.jpg,.jpeg" style={{ marginBottom: 5 }} onChange={handleFileInput} /><br />
             <p className="Hint-text" style={{}}>{"(Max file size 5MB)"}</p>
             {!fileSizeTooBig && <button className={state.isValid ? "Proceed-button" : "Proceed-button hidden"} onClick={moveOnTo2}>Proceed to Step 2 &gt;&gt;&gt;</button>}
             {fileSizeTooBig && <p style={{}}>{"Your file is too big!"}</p>}
@@ -743,9 +746,9 @@ function App() {
             <div className="outsideWrapper" ref={outsideWrapperRef}>
               <div className="insideWrapper">
                 <img draggable="false" ref={mainImageRef} className={state.image.width > state.image.height ? "Main-image-wide" : "Main-image"} src={state.image}></img>
-                <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef} className="coveringCanvas" 
-                onMouseDown={mouseDown} onMouseUp={mouseUp} onMouseMove={mouseMove} 
-                onTouchStart={mouseDown} onTouchEnd={mouseUp} onTouchMove={mouseMove}></canvas>
+                <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef} className="coveringCanvas"
+                  onMouseDown={mouseDown} onMouseUp={mouseUp} onMouseMove={mouseMove}
+                  onTouchStart={mouseDown} onTouchEnd={mouseUp} onTouchMove={mouseMove}></canvas>
               </div>
             </div>
             <p className="Hint-text" style={{ marginTop: 0, marginBottom: 0 }}>(Note: Only transparent and white backgrounds are automatically ignored by the program.</p>
@@ -776,10 +779,10 @@ function App() {
               <div className="insideWrapper">
                 <img draggable="false" ref={mainImageRef2} className={state.image.width > state.image.height ? "Main-image-wide" : "Main-image"} src={state.image}></img>
                 <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef2} className="coveringCanvas"></canvas>
-                <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef3} 
-                onMouseDown={enableMidpoint} onMouseMove={drawMidpoint} onClick={disableMidpoint} 
-                onTouchStart={enableMidpoint} onTouchMove={drawMidpoint} onTouchEnd={disableMidpoint}
-                className="coveringCanvas"></canvas>
+                <canvas width={canvasState.width} height={canvasState.height} ref={canvasRef3}
+                  onMouseDown={enableMidpoint} onMouseMove={drawMidpoint} onClick={disableMidpoint}
+                  onTouchStart={enableMidpoint} onTouchMove={drawMidpoint} onTouchEnd={disableMidpoint}
+                  className="coveringCanvas"></canvas>
               </div>
             </div>
             <button className={"Proceed-button"} onClick={moveBackTo2}>&lt;&lt;&lt; Back to Step 2</button><button className={"Proceed-button"} onClick={moveOnTo4}>Send it in! &gt;&gt;&gt;</button>
@@ -816,8 +819,8 @@ function App() {
       <footer className="App-footer">
         <p style={{ fontSize: 12, marginLeft: 10, paddingBottom: 0, marginTop: 0 }}>
           <a target="_blank" href="https://github.com/thisjustin123/amongifier/issues">Report an Issue</a>
-          <a target="_blank" style={{ marginLeft:20 }} href="https://github.com/thisjustin123/amongifier">Source Code</a>
-          <a target="_blank" style={{ marginLeft:20 }} href="https://linktr.ee/thisjustin_g">Made by Justin Guo</a>
+          <a target="_blank" style={{ marginLeft: 20 }} href="https://github.com/thisjustin123/amongifier">Source Code</a>
+          <a target="_blank" style={{ marginLeft: 20 }} href="https://linktr.ee/thisjustin_g">Made by Justin Guo</a>
         </p>
       </footer>
     </div>
