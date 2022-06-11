@@ -477,9 +477,10 @@ function App() {
     const imageBeginY = mainImageRef.current.getBoundingClientRect().y
     const imageEndY = imageBeginY + mainImageRef.current.getBoundingClientRect().height;
     if (e.clientX == undefined || e.clientY == undefined) {
-      e.clientX = e.touches[0].pageX
-      e.clientY = e.touches[0].pageY
+      e.clientX = e.touches[0].clientX
+      e.clientY = e.touches[0].clientY
     }
+    
 
     if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
       absolutePoints = [];
@@ -508,8 +509,8 @@ function App() {
     const imageBeginY = mainImageRef.current.getBoundingClientRect().y
     const imageEndY = imageBeginY + mainImageRef.current.getBoundingClientRect().height;
     if (e.clientX == undefined || e.clientY == undefined) {
-      e.clientX = e.touches[0].pageX
-      e.clientY = e.touches[0].pageY
+      e.clientX = e.touches[0].clientX
+      e.clientY = e.touches[0].clientY
     }
     e.clientX = clamp(e.clientX, imageBeginX, imageEndX)
     e.clientY = clamp(e.clientY, imageBeginY, imageEndY)
@@ -613,8 +614,8 @@ function App() {
     const imageEndY = imageBeginY + mainImageRef2.current.getBoundingClientRect().height;
 
     if (e.clientX == undefined || e.clientY == undefined) {
-      e.clientX = e.touches[0].pageX
-      e.clientY = e.touches[0].pageY
+      e.clientX = e.touches[0].clientX
+      e.clientY = e.touches[0].clientY
     }
     if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
       isMouseDown = true
@@ -635,8 +636,8 @@ function App() {
     const imageEndY = imageBeginY + mainImageRef2.current.getBoundingClientRect().height;
 
     if (e.clientX == undefined || e.clientY == undefined) {
-      e.clientX = e.touches[0].pageX
-      e.clientY = e.touches[0].pageY
+      e.clientX = e.touches[0].clientX
+      e.clientY = e.touches[0].clientY
     }
     e.clientX = clamp(e.clientX, imageBeginX, imageEndX)
     e.clientY = clamp(e.clientY, imageBeginY, imageEndY)
