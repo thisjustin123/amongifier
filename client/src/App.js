@@ -729,7 +729,7 @@ function App() {
 
   return (
     <div>
-      <header className={"App-header" + (draggingCanvas ? " No-scroll" : "")}>
+      <header className={"App-header" + (state.screen == 1 ? " No-scroll" : "")}>
 
         {(state.screen == 0 || state.screen == null) &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
