@@ -237,6 +237,10 @@ a:active {
   margin-bottom: 35px
 }
 
+.No-scroll {
+  overflow: hidden
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
