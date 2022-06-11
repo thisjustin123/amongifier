@@ -22,7 +22,6 @@ var firstPoint = { x: -1, y: -1 }
 var prevPoint = { x: -1, y: -1 }
 var pureName = ""
 var fileSizeTooBig = false
-var draggingCanvas = false
 const stages = ["Starting up...", "Cutting out the face...", "Formatting your image...", "Pasting your image...", "Extrapolating the crewmate body...", "Adding noise...", "Smoothing out...", "Blending the border...", "Adding noise..."];
 
 function App() {
@@ -481,11 +480,8 @@ function App() {
       e.clientX = e.touches[0].pageX
       e.clientY = e.touches[0].pageY
     }
-    e.clientX = clamp(e.clientX, imageBeginX, imageEndX)
-    e.clientY = clamp(e.clientY, imageBeginY, imageEndY)
 
     if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
-      draggingCanvas = true
       absolutePoints = [];
       points = []
       isMouseDown = true
@@ -570,7 +566,6 @@ function App() {
   function mouseUp(e) {
     if (isMouseDown) {
       isMouseDown = false
-      draggingCanvas = false
       const canvas = canvasRef.current
       const context = canvas.getContext('2d')
       context.fillStyle = "rgba(0, 100, 255, 0.5)";
@@ -612,8 +607,6 @@ function App() {
   }
 
   function enableMidpoint(e) {
-    isMouseDown = true
-    draggingCanvas = true
     const imageBeginX = mainImageRef2.current.getBoundingClientRect().x
     const imageBeginY = mainImageRef2.current.getBoundingClientRect().y
     const imageEndX = imageBeginX + mainImageRef2.current.getBoundingClientRect().width;
@@ -623,14 +616,14 @@ function App() {
       e.clientX = e.touches[0].pageX
       e.clientY = e.touches[0].pageY
     }
-    e.clientX = clamp(e.clientX, imageBeginX, imageEndX)
-    e.clientY = clamp(e.clientY, imageBeginY, imageEndY)
-    drawMidpoint(e)
+    if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
+      isMouseDown = true
+      drawMidpoint(e)
+    }
   }
 
   function disableMidpoint() {
     isMouseDown = false
-    draggingCanvas = false
   }
 
   function drawMidpoint(e) {
@@ -729,7 +722,7 @@ function App() {
 
   return (
     <div>
-      <header className={"App-header" + (state.screen == 1 ? " No-scroll" : "")}>
+      <header className={"App-header"}>
 
         {(state.screen == 0 || state.screen == null) &&
           <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
