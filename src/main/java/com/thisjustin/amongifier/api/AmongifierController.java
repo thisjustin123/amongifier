@@ -105,12 +105,14 @@ public class AmongifierController {
                     e.printStackTrace(pw);
                     this.failed = true;
                     this.errorMessage = sw.toString();
+                    e.printStackTrace();
                 } catch (Exception e) {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
                     e.printStackTrace(pw);
                     this.failed = true;
                     this.errorMessage = sw.toString();
+                    e.printStackTrace();
                 }
                 try {
                     long duration = 10000;
