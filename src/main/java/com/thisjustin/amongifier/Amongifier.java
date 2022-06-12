@@ -155,8 +155,8 @@ public class Amongifier {
         wholeImage = wholeImage.getSubimage(faceStartX, faceStartY, faceEndX-faceStartX+1, faceEndY-faceStartY+1);
         for (int i = 0; i < facePoints.length; i++) {
             Point p = facePoints[i];
-            p.x = p.x - faceStartX;
-            p.y = p.y - faceStartY;
+            p.x = Helper.clamp(p.x - faceStartX, 0, wholeImage.getWidth()-1);
+            p.y = Helper.clamp(p.y - faceStartY, 0, wholeImage.getHeight()-1);
         }
 
         // An image with just large enough dimensions to contain the face bordered in black that is purely white otherwise.
