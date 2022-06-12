@@ -81,21 +81,24 @@ public class Amongifier {
         Amongifier a = new Amongifier();
         try {
             BufferedImage image = ImageIO.read(new File(INPUTFILE_STRING));
-            /*Point[] points = {
-                new Point(1355, 822),
-                new Point( 997, 1034),
-                new Point( 1001, 1924),
-                new Point( 1349, 2053),
-                new Point( 1741, 1800),
-                new Point( 1657, 1014),
-            };
-            File file = new File("data/susmine_cutout.png");
-            ImageIO.write(a.cutOutFace(image, points), "png", file);*/
 
-            image = a.format(image);
-            a.amongify(image);
-            File file = new File(OUTPUTFILE_STRING);
-            ImageIO.write(a.pastedTemplate, "png", file);
+            File file = new File("data/pointText.txt");
+            file.createNewFile();
+            FileWriter f = new FileWriter(file);
+            BufferedWriter bw = new BufferedWriter(f);
+
+            
+            for (int i = 0; i <= 1000; i++) {
+                StringBuilder s = new StringBuilder();
+                for (int j = 0; j <= 1000; j++) {
+                    s.append(""+(i/10000.0)+","+(j/10000.0));
+                    if (i != 10000 || j != 10000) s.append("|");
+                }
+                if (i % 100 == 0) System.out.println("b");
+                bw.write(s.toString());
+            }
+            System.out.println("Done");
+            bw.close();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (Exception e) {

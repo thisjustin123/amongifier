@@ -16,6 +16,7 @@ import { copyImageToClipboard } from 'copy-image-clipboard'
 
 const originLink = "https://thisjustin123.github.io"
 var points = [];
+var pointSet = new Set();
 var absolutePoints = [];
 var midPoint = { x: -1, y: -1 }
 var firstPoint = { x: -1, y: -1 }
@@ -23,9 +24,10 @@ var prevPoint = { x: -1, y: -1 }
 var pureName = ""
 var fileSizeTooBig = false
 const stages = ["Starting up...", "Cutting out the face...", "Formatting your image...", "Pasting your image...", "Extrapolating the crewmate body...", "Adding noise...", "Smoothing out...", "Blending the border...", "Adding noise..."];
+var rotatedSuccessfully = false
 
 function App() {
-  var [state, setState] = useState(0);
+  var [state, setState] = useState({ screen: 0 });
   var [canvasState, setCanvasState] = useState({ width: 100, height: 100 });
   var [checkedState, setCheckedState] = useState({ aspect: false, mirror: false });
   var [postState, setPostState] = useState({ text: "Communicating with the server...", progress: 0, stage: 0 });
@@ -86,8 +88,9 @@ function App() {
   const handleFileInput = (e) => {
     if (!state.fadeOut) {
       let reader = new FileReader();
-      fileSizeTooBig = e.target.files[0].size >= 5000000
+      fileSizeTooBig = (e.target.files[0] != undefined) ? e.target.files[0].size >= 5000000 : false
       if (e.target.files[0] != undefined && !fileSizeTooBig) {
+        rotatedSuccessfully = false
         let fullName = e.target.files[0].name;
         let extension = fullName.split('.').pop().toLowerCase();
         pureName = fullName.split('.')[0]
@@ -105,10 +108,11 @@ function App() {
 
         if (extension == "jpg" || extension == "jpeg") {
           setTimeout(() => {
-            if (state.image == null) {
+            if (!rotatedSuccessfully) {
               reader.readAsDataURL(e.target.files[0]);
+              console.log("Error with rotation, using default image instead")
             }
-          }, 800);
+          }, 1600);
           Rotator.createRotatedImage(
             e.target.files[0],
             "base64",
@@ -118,6 +122,7 @@ function App() {
                 isValid: uri != null,
                 screen: 0
               });
+              rotatedSuccessfully = true
               console.log("image rotated")
             }
           );
@@ -480,11 +485,12 @@ function App() {
       e.clientX = e.touches[0].clientX
       e.clientY = e.touches[0].clientY
     }
-    
+
 
     if (e.clientX >= imageBeginX && e.clientX <= imageEndX && e.clientY >= imageBeginY && e.clientY <= imageEndY) {
       absolutePoints = [];
       points = []
+      pointSet.clear()
       isMouseDown = true
       prevPoint = { x: -1, y: -1 }
       firstPoint = { x: -1, y: -1 }
@@ -536,13 +542,15 @@ function App() {
     context.fillStyle = '#00FF00'
     context.strokeStyle = '#00FF00';
 
-    if (prevPoint.x != -1 && prevPoint.y != -1) {
-      points.push(
-        {
-          x: x / mainImageRef.current.getBoundingClientRect().width,
-          y: y / mainImageRef.current.getBoundingClientRect().height
-        }
-      )
+    const point = {
+      x: Math.round((x / mainImageRef.current.getBoundingClientRect().width) * 1000) / 1000,
+      y: Math.round((y / mainImageRef.current.getBoundingClientRect().height) * 1000) / 1000,
+    }
+    const pointString = point.x.toString() + "," + point.y
+    if (prevPoint.x != -1 && prevPoint.y != -1 && !pointSet.has(pointString)) {
+      pointSet.add(pointString)
+    
+      points.push(point)
 
       absolutePoints.push(
         {
@@ -550,18 +558,42 @@ function App() {
           y: canvasY
         }
       )
+      context.lineWidth = 4;
+      context.fillStyle = "rgba(0, 100, 255, 0.3)";
+      context.strokeStyle = '#00FF00';
+
+      context.clearRect(0, 0, canvasRef.current.getBoundingClientRect().width, canvasRef.current.getBoundingClientRect().height)
 
       context.beginPath();
-      context.moveTo(prevPoint.x, prevPoint.y);
-      context.lineTo(canvasX, canvasY);
-      context.lineWidth = 4;
+      context.moveTo(firstPoint.x, firstPoint.y);
+      for (let i = 1; i < points.length; i++) {
+        context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+        context.stroke();
+      }
+      context.strokeStyle = "rgba(0, 255, 0, 0.5)";
+      context.moveTo(prevPoint.x, prevPoint.y)
+      context.lineTo(firstPoint.x, firstPoint.y);
       context.stroke();
+
+      context.beginPath();
+      context.moveTo(firstPoint.x, firstPoint.y);
+      for (let i = 1; i < points.length; i++) {
+        context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+      }
+      context.moveTo(prevPoint.x, prevPoint.y)
+      context.lineTo(firstPoint.x, firstPoint.y);
+      context.closePath();
+      context.fill();
+
+      prevPoint = { x: canvasX, y: canvasY }
     }
-
-
-
-    //Make sure this is the last line of logPoint(e)!!
-    prevPoint = { x: canvasX, y: canvasY }
+    //for testing
+    else if (pointSet.has(pointString)) {
+      console.log("Denied point (" + point.x + ", " + point.y + ") from being added to the set.")
+      console.log(pointString)
+    }else {
+      prevPoint = { x: canvasX, y: canvasY }
+    }
   }
 
   function mouseUp(e) {
@@ -572,16 +604,21 @@ function App() {
       context.fillStyle = "rgba(0, 100, 255, 0.5)";
       context.strokeStyle = '#00FF00';
 
+      context.clearRect(0, 0, canvasRef.current.getBoundingClientRect().width, canvasRef.current.getBoundingClientRect().height)
+
       context.beginPath();
-      context.moveTo(prevPoint.x, prevPoint.y);
+      context.moveTo(firstPoint.x, firstPoint.y);
+      for (let i = 1; i < points.length; i++) {
+        context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
+        context.stroke();
+      }
+      context.moveTo(prevPoint.x, prevPoint.y)
       context.lineTo(firstPoint.x, firstPoint.y);
-      context.lineWidth = 4;
       context.stroke();
 
       context.beginPath();
       context.moveTo(firstPoint.x, firstPoint.y);
       for (let i = 1; i < points.length; i++) {
-        var pPoint = absolutePoints[i - 1];
         context.lineTo(absolutePoints[i].x, absolutePoints[i].y);
       }
       context.moveTo(prevPoint.x, prevPoint.y)
@@ -755,21 +792,27 @@ function App() {
         }
 
         {state.screen == 2 &&
-          <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"}>
+          <div className={state.fadeOut ? "Fade-out disabled" : "Fade-in"} style={{ marginTop: 10, marginBottom: 10 }}>
             Smoothing Level<br />
             <p className="Hint-text No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>(Higher is better but takes longer)</p>
             <Slider ref={smoothSlider} min={1} max={15} value={8} />
+
             Border Blend Level<br />
             <p className="Hint-text No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>(Higher is better but takes longer)</p>
             <Slider ref={borderSlider} min={1} max={15} value={8} />
-            <div>
+
+            <div style={{ fontSize: 24 }}>
               Force good aspect ratio:
               <input title="If checked, the program will stretch/squeeze the image to fit an aspect ratio that is likely to give good results."
-                type="checkbox" checked={checkedState.aspect} onChange={handleCheck} className="Check-box" style={{ marginRight: 60 }} />
+                type="checkbox" checked={checkedState.aspect} onChange={handleCheck} className="Check-box" style={{ marginTop: 0, marginBottom: 0 }} /><br />
+            </div>
+
+            <div style={{ fontSize: 24 }}>
               Mirror image horizontally:
               <input title="If checked, the program will horizontally mirror the face before operating on it."
-                type="checkbox" checked={checkedState.mirror} onChange={handleCheck2} className="Check-box" />
+                type="checkbox" checked={checkedState.mirror} onChange={handleCheck2} className="Check-box" style={{ marginTop: 20, marginBottom: 40 }} />
             </div>
+
             <p className="No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>Click to set midpoint</p>
             <p className="Hint-text No-vert-padding" style={{ marginTop: 0, marginBottom: 0 }}>(Click on the middle of the face)</p>
             <div className="outsideWrapper" ref={outsideWrapperRef2} style={{ paddingTop: 0, marginTop: 10 }}>
@@ -813,7 +856,7 @@ function App() {
           </div>
         }
       </header>
-      <footer className="App-footer">
+      <footer className={"App-footer" + (state.screen != 0 || state.fadeOut ? " Fade-out disabled" : " Fade-in")} >
         <p style={{ fontSize: 12, marginLeft: 10, paddingBottom: 0, marginTop: 0 }}>
           <a target="_blank" href="https://github.com/thisjustin123/amongifier/issues">Report an Issue</a>
           <a target="_blank" style={{ marginLeft: 20 }} href="https://github.com/thisjustin123/amongifier">Source Code</a>
