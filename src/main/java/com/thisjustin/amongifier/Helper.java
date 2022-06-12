@@ -105,7 +105,7 @@ public class Helper {
                 (int) Math.round(c1.getRed() * (1 - fraction) + c2.getRed() * fraction),
                 (int) Math.round(c1.getGreen() * (1 - fraction) + c2.getGreen() * fraction),
                 (int) Math.round(c1.getBlue() * (1 - fraction) + c2.getBlue() * fraction));
-        
+
         Color interpHSV = Color.getHSBColor(newHSV[0], newHSV[1], newHSV[2]);
 
         return interpRGB;
@@ -134,8 +134,9 @@ public class Helper {
             String x = point.substring(1, point.indexOf(","));
             String y = point.substring(point.indexOf(",") + 1, point.length() - 1);
 
-            points[i] = new Point((int) Math.round(Double.parseDouble(x) * width),
-                    (int) Math.round(Double.parseDouble(y) * height));
+            points[i] = new Point(
+                    clamp((int) Math.round(Double.parseDouble(x) * width), 0, width - 1),
+                    clamp((int) Math.round(Double.parseDouble(y) * height), 0, height - 1));
 
             pointString = pointString.substring(pointString.indexOf(")") + 1);
             i++;
